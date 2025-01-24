@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::{io_error, Expression, FromPath};
+use crate::{expression_discriminant, io_error, Expression, FromPath};
 
 pub struct BoolExpression(Vec<u32>);
 
