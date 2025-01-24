@@ -1,6 +1,6 @@
 use std::{future::Future, io};
 
-use super::Expression;
+use super::{expression_discriminant, Expression};
 
 pub struct EqualExpression<L: Expression, R: Expression>(L, R);
 
@@ -12,7 +12,7 @@ impl<L: Expression, R: Expression> Expression for EqualExpression<L, R> {
         write: &mut (impl tokio::io::AsyncWriteExt + Unpin),
     ) -> impl Future<Output = io::Result<()>> {
         async {
-            write.write_u8(1).await?;
+            write.write_u8(expression_discriminant::EQUAL).await?;
             Box::pin(self.0.write(write)).await?;
             Box::pin(self.1.write(write)).await?;
             Ok(())

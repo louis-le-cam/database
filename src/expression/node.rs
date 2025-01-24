@@ -9,6 +9,11 @@ pub enum ExpressionNode {
     Equal(Box<(ExpressionNode, ExpressionNode)>),
 }
 
+pub mod expression_discriminant {
+    pub const PATH: u8 = 0;
+    pub const EQUAL: u8 = 1;
+}
+
 impl ExpressionNode {
     pub fn evaluate<'a>(self, value: &'a Value) -> Cow<'a, Value> {
         match self {
@@ -26,8 +31,8 @@ impl ExpressionNode {
 
     fn discriminant(&self) -> u8 {
         match self {
-            ExpressionNode::Path(_) => 0,
-            ExpressionNode::Equal(_) => 1,
+            ExpressionNode::Path(_) => expression_discriminant::PATH,
+            ExpressionNode::Equal(_) => expression_discriminant::EQUAL,
         }
     }
 
@@ -35,7 +40,7 @@ impl ExpressionNode {
         let discriminant = read.read_u8().await?;
 
         let node = match discriminant {
-            0 => {
+            expression_discriminant::PATH => {
                 let length: usize = read.read_u32().await?.try_into().map_err(|_| {
                     io_error!(
                         OutOfMemory,
@@ -57,7 +62,7 @@ impl ExpressionNode {
 
                 Self::Path(path)
             }
-            1 => Self::Equal(Box::new((
+            expression_discriminant::EQUAL => Self::Equal(Box::new((
                 Box::pin(Self::read(read)).await?,
                 Box::pin(Self::read(read)).await?,
             ))),

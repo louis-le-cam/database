@@ -8,7 +8,7 @@ impl Expression for BoolExpression {
     type Target = bool;
 
     async fn write(self, write: &mut (impl tokio::io::AsyncWriteExt + Unpin)) -> io::Result<()> {
-        write.write_u8(0).await?;
+        write.write_u8(expression_discriminant::PATH).await?;
         write
             .write_u32(self.0.len().try_into().map_err(|_| {
                 io_error!(

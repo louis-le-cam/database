@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::{io_error, Expression, FromPath};
+use crate::{expression_discriminant, io_error, Expression, FromPath};
 
 pub struct Uint32Expression(Vec<u32>);
 
@@ -8,7 +8,7 @@ impl Expression for Uint32Expression {
     type Target = u32;
 
     async fn write(self, write: &mut (impl tokio::io::AsyncWriteExt + Unpin)) -> io::Result<()> {
-        write.write_u8(0).await?;
+        write.write_u8(expression_discriminant::PATH).await?;
         write
             .write_u32(self.0.len().try_into().map_err(|_| {
                 io_error!(

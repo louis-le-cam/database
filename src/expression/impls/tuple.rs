@@ -2,7 +2,7 @@ use std::io;
 
 use tokio::io::AsyncWriteExt;
 
-use crate::{io_error, Expression, FromPath, Schema};
+use crate::{expression_discriminant, io_error, Expression, FromPath, Schema};
 
 macro_rules! generate {
     ($($last_index:tt $name:ident $($field:ident)*;)*) => {
@@ -13,7 +13,7 @@ macro_rules! generate {
                 type Target = ($($field,)*);
 
                 async fn write(self, write: &mut (impl AsyncWriteExt + Unpin)) -> io::Result<()> {
-                    write.write_u8(0).await?;
+                    write.write_u8(expression_discriminant::PATH).await?;
                     write
                         .write_u32(self.$last_index.len().try_into().map_err(|_| {
                             io_error!(

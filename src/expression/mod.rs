@@ -14,6 +14,6 @@ pub use self::{
         TupleExpression5, TupleExpression6, TupleExpression7, TupleExpression8, TupleExpression9,
         UnitExpression, VecExpression,
     },
-    node::ExpressionNode,
+    node::{expression_discriminant, ExpressionNode},
     operators::{Equal, EqualExpression},
 };
