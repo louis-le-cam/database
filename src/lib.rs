@@ -15,8 +15,8 @@ pub use crate::{
         TupleExpression6, TupleExpression7, TupleExpression8, TupleExpression9, UnitExpression,
         VecExpression,
     },
-    schema::{Schema, SchemaLeaf, SchemaNode},
-    value::{Value, ValueLeaf},
+    schema::{Schema, SchemaNode},
+    value::Value,
 };
 
 macro_rules! io_error {

@@ -2,7 +2,7 @@ use std::{future::Future, io};
 
 use tokio::io::AsyncWriteExt;
 
-use crate::{io_error, Schema, SchemaLeaf, SchemaNode, StringExpression};
+use crate::{io_error, Schema, SchemaNode, StringExpression};
 
 impl Schema for String {
     type Expression = StringExpression;
@@ -10,7 +10,7 @@ impl Schema for String {
     fn write_schema(
         write: &mut (impl AsyncWriteExt + Unpin + Send),
     ) -> impl Future<Output = io::Result<()>> + Send {
-        SchemaNode::Leaf(SchemaLeaf::String).write(write)
+        SchemaNode::String.write(write)
     }
 
     fn write_value(

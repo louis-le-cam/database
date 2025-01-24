@@ -9,11 +9,6 @@ pub enum SchemaNode {
     Product(Vec<SchemaNode>),
     Sum(Vec<SchemaNode>),
     List(Box<SchemaNode>),
-    Leaf(SchemaLeaf),
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum SchemaLeaf {
     String,
     Uint32,
     Boolean,
@@ -26,10 +21,10 @@ impl SchemaNode {
             Self::Product(_) => 0,
             Self::Sum(_) => 1,
             Self::List(_) => 2,
-            Self::Leaf(SchemaLeaf::String) => 3,
-            Self::Leaf(SchemaLeaf::Uint32) => 4,
-            Self::Leaf(SchemaLeaf::Boolean) => 5,
-            Self::Leaf(SchemaLeaf::Unit) => 6,
+            Self::String => 3,
+            Self::Uint32 => 4,
+            Self::Boolean => 5,
+            Self::Unit => 6,
         }
     }
 
@@ -82,10 +77,10 @@ impl SchemaNode {
                 SchemaNode::Sum(variants)
             }
             2 => Self::List(Box::new(Box::pin(Self::read(read)).await?)),
-            3 => Self::Leaf(SchemaLeaf::String),
-            4 => Self::Leaf(SchemaLeaf::Uint32),
-            5 => Self::Leaf(SchemaLeaf::Boolean),
-            6 => Self::Leaf(SchemaLeaf::Unit),
+            3 => Self::String,
+            4 => Self::Uint32,
+            5 => Self::Boolean,
+            6 => Self::Unit,
             _ => {
                 return Err(io_error!(
                     InvalidData,
@@ -132,7 +127,7 @@ impl SchemaNode {
                 }
             }
             SchemaNode::List(schema_node) => Box::pin(schema_node.write(write)).await?,
-            SchemaNode::Leaf(_) => {}
+            SchemaNode::String | SchemaNode::Uint32 | SchemaNode::Boolean | SchemaNode::Unit => {}
         }
 
         Ok(())

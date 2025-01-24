@@ -1,28 +1,25 @@
 use std::time::Duration;
 
-use database::{Client, Database, SchemaLeaf, SchemaNode, Value, ValueLeaf};
+use database::{Client, Database, SchemaNode, Value};
 use tokio::join;
 
 #[tokio::main]
 async fn main() {
     let mut database = Database::new(
         SchemaNode::Product(vec![
-            SchemaNode::Leaf(SchemaLeaf::String),
-            SchemaNode::List(Box::new(SchemaNode::Leaf(SchemaLeaf::String))),
-            SchemaNode::Sum(vec![
-                SchemaNode::Leaf(SchemaLeaf::Unit),
-                SchemaNode::Leaf(SchemaLeaf::Uint32),
-            ]),
+            SchemaNode::String,
+            SchemaNode::List(Box::new(SchemaNode::String)),
+            SchemaNode::Sum(vec![SchemaNode::Unit, SchemaNode::Uint32]),
         ]),
         Value::Product(vec![
-            Value::Leaf(ValueLeaf::String("string 2".to_string())),
+            Value::String("string 2".to_string()),
             Value::List(vec![
-                Value::Leaf(ValueLeaf::String("string 1".to_string())),
-                Value::Leaf(ValueLeaf::String("string 2".to_string())),
-                Value::Leaf(ValueLeaf::String("string 1".to_string())),
-                Value::Leaf(ValueLeaf::String("string 3".to_string())),
+                Value::String("string 1".to_string()),
+                Value::String("string 2".to_string()),
+                Value::String("string 1".to_string()),
+                Value::String("string 3".to_string()),
             ]),
-            Value::Sum(1, Box::new(Value::Leaf(ValueLeaf::Uint32(8349342)))),
+            Value::Sum(1, Box::new(Value::Uint32(8349342))),
         ]),
     );
 

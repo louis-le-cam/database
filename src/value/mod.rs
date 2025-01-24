@@ -2,18 +2,13 @@ use std::io;
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-use crate::{io_error, SchemaLeaf, SchemaNode};
+use crate::{io_error, SchemaNode};
 
 #[derive(Clone)]
 pub enum Value {
     Product(Vec<Value>),
     Sum(u32, Box<Value>),
     List(Vec<Value>),
-    Leaf(ValueLeaf),
-}
-
-#[derive(Clone)]
-pub enum ValueLeaf {
     String(String),
     Uint32(u32),
     Boolean(bool),
@@ -36,7 +31,7 @@ impl Value {
             Value::List(list) => list
                 .get(usize::try_from(*segment).ok()?)
                 .and_then(|value| value.scope(segments)),
-            Value::Leaf(_) => None,
+            Value::String(_) | Value::Uint32(_) | Value::Boolean(_) | Value::Unit => None,
         }
     }
 
@@ -53,16 +48,10 @@ impl Value {
             (Value::List(lhs), Value::List(rhs)) => {
                 lhs.len() == rhs.len() && lhs.iter().zip(rhs).all(|(lhs, rhs)| lhs.equal(rhs))
             }
-            (Value::Leaf(ValueLeaf::String(lhs)), Value::Leaf(ValueLeaf::String(rhs))) => {
-                lhs == rhs
-            }
-            (Value::Leaf(ValueLeaf::Uint32(lhs)), Value::Leaf(ValueLeaf::Uint32(rhs))) => {
-                lhs == rhs
-            }
-            (Value::Leaf(ValueLeaf::Boolean(lhs)), Value::Leaf(ValueLeaf::Boolean(rhs))) => {
-                lhs == rhs
-            }
-            (Value::Leaf(ValueLeaf::Unit), Value::Leaf(ValueLeaf::Unit)) => true,
+            (Value::String(lhs), Value::String(rhs)) => lhs == rhs,
+            (Value::Uint32(lhs), Value::Uint32(rhs)) => lhs == rhs,
+            (Value::Boolean(lhs), Value::Boolean(rhs)) => lhs == rhs,
+            (Value::Unit, Value::Unit) => true,
             _ => panic!(),
         }
     }
@@ -126,31 +115,29 @@ impl Value {
 
                 Value::List(values)
             }
-            SchemaNode::Leaf(leaf) => Value::Leaf(match leaf {
-                SchemaLeaf::String => {
-                    let length: usize = read.read_u32().await?.try_into().map_err(|_| {
-                        io_error!(
-                            OutOfMemory,
-                            "string value length doesn't fit into a pointer sized unsigned integer",
-                        )
-                    })?;
+            SchemaNode::String => {
+                let length: usize = read.read_u32().await?.try_into().map_err(|_| {
+                    io_error!(
+                        OutOfMemory,
+                        "string value length doesn't fit into a pointer sized unsigned integer",
+                    )
+                })?;
 
-                    let mut string_bytes = Vec::new();
-                    string_bytes.try_reserve(length).map_err(|_| {
-                        io_error!(OutOfMemory, "allocation of memory for string value failed")
-                    })?;
-                    string_bytes.extend((0..length).map(|_| 0));
+                let mut string_bytes = Vec::new();
+                string_bytes.try_reserve(length).map_err(|_| {
+                    io_error!(OutOfMemory, "allocation of memory for string value failed")
+                })?;
+                string_bytes.extend((0..length).map(|_| 0));
 
-                    read.read_exact(&mut string_bytes).await?;
+                read.read_exact(&mut string_bytes).await?;
 
-                    ValueLeaf::String(String::from_utf8(string_bytes).map_err(|_| {
-                        io_error!(InvalidData, "allocation of memory for string value failed")
-                    })?)
-                }
-                SchemaLeaf::Uint32 => ValueLeaf::Uint32(read.read_u32().await?),
-                SchemaLeaf::Boolean => ValueLeaf::Boolean(read.read_u8().await? != 0),
-                SchemaLeaf::Unit => ValueLeaf::Unit,
-            }),
+                Value::String(String::from_utf8(string_bytes).map_err(|_| {
+                    io_error!(InvalidData, "allocation of memory for string value failed")
+                })?)
+            }
+            SchemaNode::Uint32 => Value::Uint32(read.read_u32().await?),
+            SchemaNode::Boolean => Value::Boolean(read.read_u8().await? != 0),
+            SchemaNode::Unit => Value::Unit,
         })
     }
 
@@ -179,23 +166,21 @@ impl Value {
                     Box::pin(value.write(write)).await?;
                 }
             }
-            Value::Leaf(leaf) => match leaf {
-                ValueLeaf::String(value) => {
-                    write
-                        .write_u32(value.len().try_into().map_err(|_| {
-                            io_error!(
-                                OutOfMemory,
-                                "string value length doesn't fit into a 32 bit unsigned integer",
-                            )
-                        })?)
-                        .await?;
+            Value::String(value) => {
+                write
+                    .write_u32(value.len().try_into().map_err(|_| {
+                        io_error!(
+                            OutOfMemory,
+                            "string value length doesn't fit into a 32 bit unsigned integer",
+                        )
+                    })?)
+                    .await?;
 
-                    write.write_all(value.as_bytes()).await?;
-                }
-                ValueLeaf::Uint32(value) => write.write_u32(*value).await?,
-                ValueLeaf::Boolean(value) => write.write_u8(*value as u8).await?,
-                ValueLeaf::Unit => {}
-            },
+                write.write_all(value.as_bytes()).await?;
+            }
+            Value::Uint32(value) => write.write_u32(*value).await?,
+            Value::Boolean(value) => write.write_u8(*value as u8).await?,
+            Value::Unit => {}
         }
 
         Ok(())

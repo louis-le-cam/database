@@ -2,7 +2,7 @@ use std::{borrow::Cow, io};
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-use crate::{io_error, Value, ValueLeaf};
+use crate::{io_error, Value};
 
 pub enum ExpressionNode {
     Path(Vec<u32>),
@@ -19,9 +19,7 @@ impl ExpressionNode {
                 let left_value = left_expression.evaluate(value);
                 let right_value = right_expression.evaluate(value);
 
-                Cow::Owned(Value::Leaf(ValueLeaf::Boolean(
-                    left_value.equal(&right_value),
-                )))
+                Cow::Owned(Value::Boolean(left_value.equal(&right_value)))
             }
         }
     }
