@@ -2,6 +2,7 @@ mod bool;
 mod string;
 mod tuple;
 mod uint32;
+mod unit;
 mod vec;
 
 pub use self::{
@@ -13,5 +14,6 @@ pub use self::{
         TupleExpression2, TupleExpression3, TupleExpression4, TupleExpression5, TupleExpression6,
         TupleExpression7, TupleExpression8, TupleExpression9,
     },
+    unit::UnitExpression,
     vec::VecExpression,
 };

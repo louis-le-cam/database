@@ -17,6 +17,7 @@ pub enum SchemaLeaf {
     String,
     Uint32,
     Boolean,
+    Unit,
 }
 
 impl SchemaNode {
@@ -28,6 +29,7 @@ impl SchemaNode {
             Self::Leaf(SchemaLeaf::String) => 3,
             Self::Leaf(SchemaLeaf::Uint32) => 4,
             Self::Leaf(SchemaLeaf::Boolean) => 5,
+            Self::Leaf(SchemaLeaf::Unit) => 6,
         }
     }
 
@@ -83,6 +85,7 @@ impl SchemaNode {
             3 => Self::Leaf(SchemaLeaf::String),
             4 => Self::Leaf(SchemaLeaf::Uint32),
             5 => Self::Leaf(SchemaLeaf::Boolean),
+            6 => Self::Leaf(SchemaLeaf::Unit),
             _ => {
                 return Err(io_error!(
                     InvalidData,

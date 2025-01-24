@@ -17,6 +17,7 @@ pub enum ValueLeaf {
     String(String),
     Uint32(u32),
     Boolean(bool),
+    Unit,
 }
 
 impl Value {
@@ -61,6 +62,7 @@ impl Value {
             (Value::Leaf(ValueLeaf::Boolean(lhs)), Value::Leaf(ValueLeaf::Boolean(rhs))) => {
                 lhs == rhs
             }
+            (Value::Leaf(ValueLeaf::Unit), Value::Leaf(ValueLeaf::Unit)) => true,
             _ => panic!(),
         }
     }
@@ -147,6 +149,7 @@ impl Value {
                 }
                 SchemaLeaf::Uint32 => ValueLeaf::Uint32(read.read_u32().await?),
                 SchemaLeaf::Boolean => ValueLeaf::Boolean(read.read_u8().await? != 0),
+                SchemaLeaf::Unit => ValueLeaf::Unit,
             }),
         })
     }
@@ -191,6 +194,7 @@ impl Value {
                 }
                 ValueLeaf::Uint32(value) => write.write_u32(*value).await?,
                 ValueLeaf::Boolean(value) => write.write_u8(*value as u8).await?,
+                ValueLeaf::Unit => {}
             },
         }
 
