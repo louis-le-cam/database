@@ -2,7 +2,9 @@ use std::{future::Future, io, marker::Sync};
 
 use tokio::io::AsyncWriteExt;
 
-use crate::{io_error, Schema, SchemaLeaf, SchemaNode, StringExpression, VecExpression};
+use crate::{
+    io_error, BoolExpression, Schema, SchemaLeaf, SchemaNode, StringExpression, VecExpression,
+};
 
 impl<T: Schema + Send + Sync> Schema for Vec<T> {
     type Expression = VecExpression<T>;
@@ -116,5 +118,28 @@ impl Schema for String {
             String::from_utf8(string_bytes)
                 .map_err(|_| io_error!(InvalidData, "allocation of memory for string value failed"))
         }
+    }
+}
+
+impl Schema for bool {
+    type Expression = BoolExpression;
+
+    fn write_schema(
+        write: &mut (impl AsyncWriteExt + Unpin + Send),
+    ) -> impl Future<Output = io::Result<()>> + Send {
+        write.write_u8(5)
+    }
+
+    fn write_value(
+        &self,
+        write: &mut (impl AsyncWriteExt + Unpin + Send),
+    ) -> impl Future<Output = io::Result<()>> + Send {
+        write.write_u8(*self as u8)
+    }
+
+    fn read_value(
+        read: &mut (impl tokio::io::AsyncReadExt + Unpin + Send),
+    ) -> impl Future<Output = io::Result<Self>> + Send {
+        async { Ok(read.read_u8().await? != 0) }
     }
 }

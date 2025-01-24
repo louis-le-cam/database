@@ -1,17 +1,35 @@
-use std::io;
+use std::{borrow::Cow, io};
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-use crate::io_error;
+use crate::{io_error, Value, ValueLeaf};
 
 pub enum ExpressionNode {
     Path(Vec<u32>),
+    Equal(Box<(ExpressionNode, ExpressionNode)>),
 }
 
 impl ExpressionNode {
+    pub fn evaluate<'a>(self, value: &'a Value) -> Cow<'a, Value> {
+        match self {
+            ExpressionNode::Path(path) => Cow::Borrowed(value.scope(&path).unwrap()),
+            ExpressionNode::Equal(operands) => {
+                let (left_expression, right_expression) = *operands;
+
+                let left_value = left_expression.evaluate(value);
+                let right_value = right_expression.evaluate(value);
+
+                Cow::Owned(Value::Leaf(ValueLeaf::Boolean(
+                    left_value.equal(&right_value),
+                )))
+            }
+        }
+    }
+
     fn discriminant(&self) -> u8 {
         match self {
             ExpressionNode::Path(_) => 0,
+            ExpressionNode::Equal(_) => 1,
         }
     }
 
@@ -41,6 +59,10 @@ impl ExpressionNode {
 
                 Self::Path(path)
             }
+            1 => Self::Equal(Box::new((
+                Box::pin(Self::read(read)).await?,
+                Box::pin(Self::read(read)).await?,
+            ))),
             _ => {
                 return Err(io_error!(
                     InvalidData,
@@ -71,6 +93,10 @@ impl ExpressionNode {
                 for segment in segments {
                     write.write_u32(*segment).await?;
                 }
+            }
+            ExpressionNode::Equal(operands) => {
+                Box::pin(operands.as_ref().0.write(write)).await?;
+                Box::pin(operands.as_ref().1.write(write)).await?;
             }
         }
 

@@ -7,7 +7,10 @@ mod value;
 pub use crate::{
     client::Client,
     database::Database,
-    expression::{Expression, ExpressionNode, FromPath, StringExpression, VecExpression},
+    expression::{
+        BoolExpression, Equal, EqualExpression, Expression, ExpressionNode, FromPath,
+        StringExpression, VecExpression,
+    },
     schema::{Schema, SchemaLeaf, SchemaNode},
     value::{Value, ValueLeaf},
 };

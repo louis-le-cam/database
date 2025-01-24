@@ -4,6 +4,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use crate::{io_error, SchemaLeaf, SchemaNode};
 
+#[derive(Clone)]
 pub enum Value {
     Product(Vec<Value>),
     Sum(u32, Box<Value>),
@@ -11,9 +12,11 @@ pub enum Value {
     Leaf(ValueLeaf),
 }
 
+#[derive(Clone)]
 pub enum ValueLeaf {
     String(String),
     Uint32(u32),
+    Boolean(bool),
 }
 
 impl Value {
@@ -33,6 +36,32 @@ impl Value {
                 .get(usize::try_from(*segment).ok()?)
                 .and_then(|value| value.scope(segments)),
             Value::Leaf(_) => None,
+        }
+    }
+
+    pub fn equal(&self, rhs: &Value) -> bool {
+        match (self, rhs) {
+            (Value::Product(lhs), Value::Product(rhs)) => {
+                debug_assert_eq!(lhs.len(), rhs.len());
+
+                lhs.iter().zip(rhs).all(|(lhs, rhs)| lhs.equal(rhs))
+            }
+            (Value::Sum(lhs_discriminant, lhs), Value::Sum(rhs_discriminant, rhs)) => {
+                (lhs_discriminant == rhs_discriminant) && lhs.equal(rhs)
+            }
+            (Value::List(lhs), Value::List(rhs)) => {
+                lhs.len() == rhs.len() && lhs.iter().zip(rhs).all(|(lhs, rhs)| lhs.equal(rhs))
+            }
+            (Value::Leaf(ValueLeaf::String(lhs)), Value::Leaf(ValueLeaf::String(rhs))) => {
+                lhs == rhs
+            }
+            (Value::Leaf(ValueLeaf::Uint32(lhs)), Value::Leaf(ValueLeaf::Uint32(rhs))) => {
+                lhs == rhs
+            }
+            (Value::Leaf(ValueLeaf::Boolean(lhs)), Value::Leaf(ValueLeaf::Boolean(rhs))) => {
+                lhs == rhs
+            }
+            _ => panic!(),
         }
     }
 
@@ -117,6 +146,7 @@ impl Value {
                     })?)
                 }
                 SchemaLeaf::Uint32 => ValueLeaf::Uint32(read.read_u32().await?),
+                SchemaLeaf::Boolean => ValueLeaf::Boolean(read.read_u8().await? != 0),
             }),
         })
     }
@@ -160,6 +190,7 @@ impl Value {
                     write.write_all(value.as_bytes()).await?;
                 }
                 ValueLeaf::Uint32(value) => write.write_u32(*value).await?,
+                ValueLeaf::Boolean(value) => write.write_u8(*value as u8).await?,
             },
         }
 

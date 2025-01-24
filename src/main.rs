@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use database::{Client, Database, SchemaLeaf, SchemaNode, Value, ValueLeaf};
+use database::{Client, Database, Equal, SchemaLeaf, SchemaNode, Value, ValueLeaf};
 use tokio::join;
 
 #[tokio::main]
@@ -23,7 +23,7 @@ async fn main() {
             .unwrap();
 
         dbg!(client.get_schema().await.unwrap());
-        dbg!(client.query(|db| db.get(1)).await.unwrap());
+        dbg!(client.query(|db| db.get(0).equal(db.get(1))).await.unwrap());
     };
 
     let (database_result, _) = join!(database.listen("localhost:1234"), client_future);

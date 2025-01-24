@@ -37,13 +37,11 @@ impl Database {
             match tcp.read_u8().await? {
                 0 => self.schema.write(&mut tcp).await?,
                 1 => {
-                    let expression = ExpressionNode::read(&mut tcp).await?;
-
-                    match expression {
-                        ExpressionNode::Path(path) => {
-                            self.value.scope(&path).unwrap().write(&mut tcp).await?
-                        }
-                    }
+                    ExpressionNode::read(&mut tcp)
+                        .await?
+                        .evaluate(&self.value)
+                        .write(&mut tcp)
+                        .await?;
                 }
                 _ => return Err(io_error!(InvalidData, "invalid discriminant for request")),
             }

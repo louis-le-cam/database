@@ -16,6 +16,7 @@ pub enum SchemaNode {
 pub enum SchemaLeaf {
     String,
     Uint32,
+    Boolean,
 }
 
 impl SchemaNode {
@@ -26,6 +27,7 @@ impl SchemaNode {
             Self::List(_) => 2,
             Self::Leaf(SchemaLeaf::String) => 3,
             Self::Leaf(SchemaLeaf::Uint32) => 4,
+            Self::Leaf(SchemaLeaf::Boolean) => 5,
         }
     }
 
@@ -80,6 +82,7 @@ impl SchemaNode {
             2 => Self::List(Box::new(Box::pin(Self::read(read)).await?)),
             3 => Self::Leaf(SchemaLeaf::String),
             4 => Self::Leaf(SchemaLeaf::Uint32),
+            5 => Self::Leaf(SchemaLeaf::Boolean),
             _ => {
                 return Err(io_error!(
                     InvalidData,
