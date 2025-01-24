@@ -2,7 +2,7 @@ use std::{future::Future, io};
 
 use tokio::io::AsyncWriteExt;
 
-use crate::{BoolExpression, Schema};
+use crate::{schema_discriminant, BoolExpression, Schema};
 
 impl Schema for bool {
     type Expression = BoolExpression;
@@ -10,7 +10,7 @@ impl Schema for bool {
     fn write_schema(
         write: &mut (impl AsyncWriteExt + Unpin + Send),
     ) -> impl Future<Output = io::Result<()>> + Send {
-        write.write_u8(5)
+        write.write_u8(schema_discriminant::BOOLEAN)
     }
 
     fn write_value(

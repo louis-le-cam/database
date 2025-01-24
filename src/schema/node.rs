@@ -15,16 +15,26 @@ pub enum SchemaNode {
     Unit,
 }
 
+pub mod schema_discriminant {
+    pub const PRODUCT: u8 = 0;
+    pub const SUM: u8 = 1;
+    pub const LIST: u8 = 2;
+    pub const STRING: u8 = 3;
+    pub const UINT32: u8 = 4;
+    pub const BOOLEAN: u8 = 5;
+    pub const UNIT: u8 = 6;
+}
+
 impl SchemaNode {
     fn discriminant(&self) -> u8 {
         match self {
-            Self::Product(_) => 0,
-            Self::Sum(_) => 1,
-            Self::List(_) => 2,
-            Self::String => 3,
-            Self::Uint32 => 4,
-            Self::Boolean => 5,
-            Self::Unit => 6,
+            Self::Product(_) => schema_discriminant::PRODUCT,
+            Self::Sum(_) => schema_discriminant::SUM,
+            Self::List(_) => schema_discriminant::LIST,
+            Self::String => schema_discriminant::STRING,
+            Self::Uint32 => schema_discriminant::UINT32,
+            Self::Boolean => schema_discriminant::BOOLEAN,
+            Self::Unit => schema_discriminant::UNIT,
         }
     }
 
@@ -32,7 +42,7 @@ impl SchemaNode {
         let discriminant = read.read_u8().await?;
 
         let node = match discriminant {
-            0 => {
+            schema_discriminant::PRODUCT => {
                 let length: usize = read.read_u32().await?.try_into().map_err(|_| {
                     io_error!(
                         OutOfMemory,
@@ -54,7 +64,7 @@ impl SchemaNode {
 
                 SchemaNode::Product(fields)
             }
-            1 => {
+            schema_discriminant::SUM => {
                 let length: usize = read.read_u32().await?.try_into().map_err(|_| {
                     io_error!(
                         OutOfMemory,
@@ -76,11 +86,11 @@ impl SchemaNode {
 
                 SchemaNode::Sum(variants)
             }
-            2 => Self::List(Box::new(Box::pin(Self::read(read)).await?)),
-            3 => Self::String,
-            4 => Self::Uint32,
-            5 => Self::Boolean,
-            6 => Self::Unit,
+            schema_discriminant::LIST => Self::List(Box::new(Box::pin(Self::read(read)).await?)),
+            schema_discriminant::STRING => Self::String,
+            schema_discriminant::UINT32 => Self::Uint32,
+            schema_discriminant::BOOLEAN => Self::Boolean,
+            schema_discriminant::UNIT => Self::Unit,
             _ => {
                 return Err(io_error!(
                     InvalidData,

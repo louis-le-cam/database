@@ -2,7 +2,7 @@ use std::{future::Future, io};
 
 use tokio::io::AsyncWriteExt;
 
-use crate::{Schema, UnitExpression};
+use crate::{schema_discriminant, Schema, UnitExpression};
 
 impl Schema for () {
     type Expression = UnitExpression;
@@ -10,7 +10,7 @@ impl Schema for () {
     fn write_schema(
         write: &mut (impl AsyncWriteExt + Unpin + Send),
     ) -> impl Future<Output = io::Result<()>> + Send {
-        write.write_u8(5)
+        write.write_u8(schema_discriminant::UNIT)
     }
 
     fn write_value(

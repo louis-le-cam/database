@@ -2,7 +2,7 @@ use std::{future::Future, io};
 
 use tokio::io::AsyncWriteExt;
 
-use crate::{io_error, OptionExpression, Schema};
+use crate::{io_error, schema_discriminant, OptionExpression, Schema};
 
 impl<S: Schema + Send + Sync> Schema for Option<S> {
     type Expression = OptionExpression<S>;
@@ -11,7 +11,7 @@ impl<S: Schema + Send + Sync> Schema for Option<S> {
         write: &mut (impl AsyncWriteExt + Unpin + Send),
     ) -> impl Future<Output = io::Result<()>> + Send {
         async {
-            write.write_u8(1).await?;
+            write.write_u8(schema_discriminant::SUM).await?;
             write.write_u32(2).await?;
             <()>::write_schema(write).await?;
             S::write_schema(write).await?;

@@ -3,10 +3,10 @@ use std::{future::Future, io};
 use tokio::io::AsyncWriteExt;
 
 use crate::{
-    Schema, TupleExpression1, TupleExpression10, TupleExpression11, TupleExpression12,
-    TupleExpression13, TupleExpression14, TupleExpression15, TupleExpression16, TupleExpression2,
-    TupleExpression3, TupleExpression4, TupleExpression5, TupleExpression6, TupleExpression7,
-    TupleExpression8, TupleExpression9,
+    schema_discriminant, Schema, TupleExpression1, TupleExpression10, TupleExpression11,
+    TupleExpression12, TupleExpression13, TupleExpression14, TupleExpression15, TupleExpression16,
+    TupleExpression2, TupleExpression3, TupleExpression4, TupleExpression5, TupleExpression6,
+    TupleExpression7, TupleExpression8, TupleExpression9,
 };
 
 macro_rules! generate {
@@ -19,7 +19,7 @@ macro_rules! generate {
                     write: &mut (impl AsyncWriteExt + Unpin + Send),
                 ) -> impl Future<Output = io::Result<()>> + Send {
                     async {
-                        write.write_u8(0).await?;
+                        write.write_u8(schema_discriminant::PRODUCT).await?;
 
                         #[allow(non_snake_case)]
                         {

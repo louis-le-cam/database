@@ -15,7 +15,7 @@ pub use crate::{
         TupleExpression6, TupleExpression7, TupleExpression8, TupleExpression9, UnitExpression,
         VecExpression,
     },
-    schema::{Schema, SchemaNode},
+    schema::{schema_discriminant, Schema, SchemaNode},
     value::Value,
 };
 

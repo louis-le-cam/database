@@ -2,7 +2,7 @@ use std::{future::Future, io};
 
 use tokio::io::AsyncWriteExt;
 
-use crate::{io_error, Schema, VecExpression};
+use crate::{io_error, schema_discriminant, Schema, VecExpression};
 
 impl<T: Schema + Send + Sync> Schema for Vec<T> {
     type Expression = VecExpression<T>;
@@ -11,7 +11,7 @@ impl<T: Schema + Send + Sync> Schema for Vec<T> {
         write: &mut (impl AsyncWriteExt + Unpin + Send),
     ) -> impl Future<Output = io::Result<()>> + Send {
         async {
-            write.write_u8(2).await?;
+            write.write_u8(schema_discriminant::LIST).await?;
             T::write_schema(write).await?;
 
             Ok(())
