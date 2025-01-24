@@ -1,4 +1,5 @@
 mod bool;
+mod option;
 mod string;
 mod tuple;
 mod uint32;
@@ -7,6 +8,7 @@ mod vec;
 
 pub use self::{
     bool::BoolExpression,
+    option::OptionExpression,
     string::StringExpression,
     tuple::{
         TupleExpression1, TupleExpression10, TupleExpression11, TupleExpression12,
