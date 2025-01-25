@@ -50,3 +50,18 @@ client.query(|users| {
   })
 });
 ```
+
+## Next steps
+- [ ] Add macro to implements `Schema` trait for user-defined types
+- [ ] Add more expressions
+  - [ ] simple binary operators: && || + - * / %
+  - [ ] list operators: push insert remove
+- [ ] Add lazy iterators
+- [ ] Find a better way to represent data, and to have it partially loadeable in memory
+- [ ] Optimize the expression evaluation
+- [ ] Save the data to the filesystem
+- [ ] Add partial values to save network traffic
+- [ ] Add other types of collections
+  - [ ] hash map
+  - [ ] slot map that can simulate sql-like relations, with a new-type key
+- [ ] Some sort of indexing
