@@ -20,7 +20,7 @@ pub mod expression_discriminant {
 }
 
 impl ExpressionNode {
-    pub fn evaluate<'a>(self, value: Arc<Mutex<Value>>) -> Arc<Mutex<Value>> {
+    pub fn evaluate(self, value: Arc<Mutex<Value>>) -> Arc<Mutex<Value>> {
         match self {
             ExpressionNode::Path(path) => Value::scope(value, &path).unwrap(),
             ExpressionNode::Set(operands) => {
