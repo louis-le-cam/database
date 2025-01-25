@@ -1,4 +1,8 @@
-use std::{convert::Infallible, io};
+use std::{
+    convert::Infallible,
+    io,
+    sync::{Arc, Mutex},
+};
 
 use tokio::{
     io::AsyncReadExt,
@@ -9,12 +13,15 @@ use crate::{io_error, ExpressionNode, SchemaNode, Value};
 
 pub struct Database {
     schema: SchemaNode,
-    value: Value,
+    value: Arc<Mutex<Value>>,
 }
 
 impl Database {
     pub fn new(schema: SchemaNode, value: Value) -> Database {
-        Self { schema, value }
+        Self {
+            schema,
+            value: Arc::new(Mutex::new(value)),
+        }
     }
 
     pub async fn listen(&mut self, address: impl ToSocketAddrs) -> io::Result<Infallible> {
@@ -39,7 +46,9 @@ impl Database {
                 1 => {
                     ExpressionNode::read(&mut tcp)
                         .await?
-                        .evaluate(&self.value)
+                        .evaluate(self.value.clone())
+                        .lock()
+                        .unwrap()
                         .write(&mut tcp)
                         .await?;
                 }

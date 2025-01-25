@@ -1,4 +1,7 @@
-use std::io;
+use std::{
+    io,
+    sync::{Arc, Mutex},
+};
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -6,9 +9,9 @@ use crate::{io_error, SchemaNode};
 
 #[derive(Clone)]
 pub enum Value {
-    Product(Vec<Value>),
-    Sum(u32, Box<Value>),
-    List(Vec<Value>),
+    Product(Vec<Arc<Mutex<Value>>>),
+    Sum(u32, Arc<Mutex<Value>>),
+    List(Vec<Arc<Mutex<Value>>>),
     String(String),
     Uint32(u32),
     Boolean(bool),
@@ -16,21 +19,21 @@ pub enum Value {
 }
 
 impl Value {
-    pub fn scope(&self, path: &[u32]) -> Option<&Self> {
+    pub fn scope(value: Arc<Mutex<Value>>, path: &[u32]) -> Option<Arc<Mutex<Self>>> {
         let Some((segment, segments)) = path.split_first() else {
-            return Some(self);
+            return Some(value.clone());
         };
 
-        match self {
+        match &*value.lock().unwrap() {
             Value::Product(fields) => fields
                 .get(usize::try_from(*segment).ok()?)
-                .and_then(|value| value.scope(segments)),
-            Value::Sum(discriminant, value) => (discriminant == segment)
-                .then(|| value.scope(segments))
+                .and_then(|value| Value::scope(value.clone(), segments)),
+            Value::Sum(discriminant, value) => (*discriminant == *segment)
+                .then(|| Value::scope(value.clone(), segments))
                 .flatten(),
             Value::List(list) => list
                 .get(usize::try_from(*segment).ok()?)
-                .and_then(|value| value.scope(segments)),
+                .and_then(|value| Value::scope(value.clone(), segments)),
             Value::String(_) | Value::Uint32(_) | Value::Boolean(_) | Value::Unit => None,
         }
     }
@@ -40,13 +43,20 @@ impl Value {
             (Value::Product(lhs), Value::Product(rhs)) => {
                 debug_assert_eq!(lhs.len(), rhs.len());
 
-                lhs.iter().zip(rhs).all(|(lhs, rhs)| lhs.equal(rhs))
+                lhs.iter()
+                    .zip(rhs)
+                    .all(|(lhs, rhs)| lhs.lock().unwrap().equal(&rhs.lock().unwrap()))
             }
             (Value::Sum(lhs_discriminant, lhs), Value::Sum(rhs_discriminant, rhs)) => {
-                (lhs_discriminant == rhs_discriminant) && lhs.equal(rhs)
+                (lhs_discriminant == rhs_discriminant)
+                    && lhs.lock().unwrap().equal(&rhs.lock().unwrap())
             }
             (Value::List(lhs), Value::List(rhs)) => {
-                lhs.len() == rhs.len() && lhs.iter().zip(rhs).all(|(lhs, rhs)| lhs.equal(rhs))
+                lhs.len() == rhs.len()
+                    && lhs
+                        .iter()
+                        .zip(rhs)
+                        .all(|(lhs, rhs)| lhs.lock().unwrap().equal(&rhs.lock().unwrap()))
             }
             (Value::String(lhs), Value::String(rhs)) => lhs == rhs,
             (Value::Uint32(lhs), Value::Uint32(rhs)) => lhs == rhs,
@@ -71,7 +81,9 @@ impl Value {
                 })?;
 
                 for field in fields {
-                    values.push(Box::pin(Value::read(field, read)).await?);
+                    values.push(Arc::new(Mutex::new(
+                        Box::pin(Value::read(field, read)).await?,
+                    )));
                 }
 
                 Value::Product(values)
@@ -93,7 +105,7 @@ impl Value {
 
                 Value::Sum(
                     discriminant,
-                    Box::new(Box::pin(Value::read(variant, read)).await?),
+                    Arc::new(Mutex::new(Box::pin(Value::read(variant, read)).await?)),
                 )
             }
             SchemaNode::List(inner) => {
@@ -110,7 +122,9 @@ impl Value {
                 })?;
 
                 for _ in 0..length {
-                    values.push(Box::pin(Value::read(inner, read)).await?);
+                    values.push(Arc::new(Mutex::new(
+                        Box::pin(Value::read(inner, read)).await?,
+                    )));
                 }
 
                 Value::List(values)
@@ -145,12 +159,12 @@ impl Value {
         match self {
             Value::Product(fields) => {
                 for field in fields {
-                    Box::pin(field.write(write)).await?;
+                    Box::pin(field.lock().unwrap().write(write)).await?;
                 }
             }
             Value::Sum(discriminant, variant) => {
                 write.write_u32(*discriminant).await?;
-                Box::pin(variant.write(write)).await?;
+                Box::pin(variant.lock().unwrap().write(write)).await?;
             }
             Value::List(values) => {
                 write
@@ -163,7 +177,7 @@ impl Value {
                     .await?;
 
                 for value in values {
-                    Box::pin(value.write(write)).await?;
+                    Box::pin(value.lock().unwrap().write(write)).await?;
                 }
             }
             Value::String(value) => {

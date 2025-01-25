@@ -1,6 +1,9 @@
-use std::time::Duration;
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
-use database::{Client, Database, SchemaNode, Value};
+use database::{Client, Database, Equal, SchemaNode, Set, Value};
 use tokio::join;
 
 #[tokio::main]
@@ -12,14 +15,17 @@ async fn main() {
             SchemaNode::Sum(vec![SchemaNode::Unit, SchemaNode::Uint32]),
         ]),
         Value::Product(vec![
-            Value::String("string 2".to_string()),
-            Value::List(vec![
-                Value::String("string 1".to_string()),
-                Value::String("string 2".to_string()),
-                Value::String("string 1".to_string()),
-                Value::String("string 3".to_string()),
-            ]),
-            Value::Sum(1, Box::new(Value::Uint32(8349342))),
+            Arc::new(Mutex::new(Value::String("string 2".to_string()))),
+            Arc::new(Mutex::new(Value::List(vec![
+                Arc::new(Mutex::new(Value::String("string 1".to_string()))),
+                Arc::new(Mutex::new(Value::String("string 2".to_string()))),
+                Arc::new(Mutex::new(Value::String("string 1".to_string()))),
+                Arc::new(Mutex::new(Value::String("string 3".to_string()))),
+            ]))),
+            Arc::new(Mutex::new(Value::Sum(
+                1,
+                Arc::new(Mutex::new(Value::Uint32(8349342))),
+            ))),
         ]),
     );
 
@@ -31,6 +37,8 @@ async fn main() {
             .unwrap();
 
         dbg!(client.get_schema().await.unwrap());
+        // dbg!(client.query(|db| db.0.equal(db.1.get(1))).await.unwrap());
+        dbg!(client.query(|db| db.0.set(db.1.get(0))).await.unwrap());
         dbg!(client.query(|db| db).await.unwrap());
     };
 
