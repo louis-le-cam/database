@@ -5,6 +5,3 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1.43.0", features = ["rt", "rt-multi-thread", "macros", "net", "io-util", "time"] }
-num-traits = "0.2.19"
-num-derive = "0.4.2"
-paste = "1.0.15"
