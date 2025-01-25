@@ -1,5 +1,7 @@
 # Experimental typed database engine (WIP)
 
+This database is currently work-in-progress, it is certainly very slow and lacks lot of features
+
 ## Model your data correctly
 
 This database implements [algebraic data types](https://en.wikipedia.org/wiki/Algebraic_data_type) (like rust)
