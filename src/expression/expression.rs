@@ -9,6 +9,6 @@ pub trait Expression {
 
     fn write(
         self,
-        write: &mut (impl AsyncWriteExt + Unpin),
+        write: &mut (impl AsyncWriteExt + Unpin + Send),
     ) -> impl Future<Output = io::Result<()>>;
 }

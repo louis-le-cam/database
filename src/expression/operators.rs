@@ -11,7 +11,7 @@ impl<L: Expression, R: Expression> Expression for EqualExpression<L, R> {
 
     fn write(
         self,
-        write: &mut (impl AsyncWriteExt + Unpin),
+        write: &mut (impl AsyncWriteExt + Unpin + Send),
     ) -> impl Future<Output = io::Result<()>> {
         async {
             write.write_u8(expression_discriminant::EQUAL).await?;
@@ -39,7 +39,7 @@ impl<L: Expression, R: Expression> Expression for SetExpression<L, R> {
 
     fn write(
         self,
-        write: &mut (impl AsyncWriteExt + Unpin),
+        write: &mut (impl AsyncWriteExt + Unpin + Send),
     ) -> impl Future<Output = io::Result<()>> {
         async {
             write.write_u8(expression_discriminant::SET).await?;
@@ -70,7 +70,7 @@ where
 
     fn write(
         self,
-        write: &mut (impl AsyncWriteExt + Unpin),
+        write: &mut (impl AsyncWriteExt + Unpin + Send),
     ) -> impl Future<Output = io::Result<()>> {
         async {
             write.write_u8(expression_discriminant::FILTER).await?;

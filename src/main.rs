@@ -43,7 +43,7 @@ async fn main() {
             .query(|db| db
                 .1
                 .clone()
-                .set(Filter::filter(db.1, |string| string.equal(db.0))))
+                .set(Filter::filter(db.1, |string| string.equal("string 1"))))
             .await
             .unwrap());
         dbg!(client.query(|db| db).await.unwrap());

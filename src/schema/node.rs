@@ -4,7 +4,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use crate::io_error;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum SchemaNode {
     Product(Vec<SchemaNode>),
     Sum(Vec<SchemaNode>),
