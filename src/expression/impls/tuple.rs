@@ -9,6 +9,12 @@ macro_rules! generate {
         $(
             pub struct $name<$($field: Schema + Send + Sync,)*>($(pub $field::Expression,)* Vec<u32>);
 
+            impl<$($field: Schema + Send + Sync,)*> Clone for $name<$($field,)*> {
+                fn clone(&self) -> Self {
+                    Self::from_path(self.$last_index.clone())
+                }
+            }
+
             impl<$($field: Schema + Send + Sync,)*> Expression for $name<$($field,)*> {
                 type Target = ($($field,)*);
 

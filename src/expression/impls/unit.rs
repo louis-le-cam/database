@@ -2,6 +2,7 @@ use std::io;
 
 use crate::{expression_discriminant, io_error, Expression, FromPath};
 
+#[derive(Clone)]
 pub struct UnitExpression(Vec<u32>);
 
 impl Expression for UnitExpression {

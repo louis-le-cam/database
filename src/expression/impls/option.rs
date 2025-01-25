@@ -4,6 +4,12 @@ use crate::{expression_discriminant, io_error, Expression, FromPath, Schema};
 
 pub struct OptionExpression<S: Schema + Send + Sync>(Vec<u32>, PhantomData<S>);
 
+impl<S: Schema + Send + Sync> Clone for OptionExpression<S> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone(), PhantomData)
+    }
+}
+
 impl<S: Schema + Send + Sync> Expression for OptionExpression<S> {
     type Target = bool;
 

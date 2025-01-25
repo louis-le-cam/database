@@ -4,6 +4,12 @@ use crate::{expression_discriminant, io_error, Expression, FromPath, Schema};
 
 pub struct VecExpression<T: Schema + Send + Sync>(Vec<u32>, PhantomData<T>);
 
+impl<T: Schema + Send + Sync> Clone for VecExpression<T> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone(), PhantomData)
+    }
+}
+
 impl<T: Schema + Send + Sync> VecExpression<T> {
     pub fn get(&self, index: u32) -> T::Expression {
         T::Expression::from_path(self.0.iter().copied().chain([index]).collect())
