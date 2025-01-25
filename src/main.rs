@@ -3,7 +3,7 @@ use std::{
     time::Duration,
 };
 
-use database::{Client, Database, Equal, SchemaNode, Set, Value};
+use database::{Client, Database, SchemaNode, Set, Value};
 use tokio::join;
 
 #[tokio::main]

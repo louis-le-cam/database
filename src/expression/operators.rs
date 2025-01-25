@@ -1,6 +1,6 @@
 use std::{future::Future, io};
 
-use super::{expression_discriminant, Expression, FromPath};
+use super::{expression_discriminant, Expression};
 
 pub struct EqualExpression<L: Expression, R: Expression>(L, R);
 
