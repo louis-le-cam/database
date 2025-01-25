@@ -7,27 +7,30 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use crate::{io_error, Value};
 
+#[derive(Debug, Clone)]
 pub enum ExpressionNode {
     Path(Vec<u32>),
     Set(Box<(ExpressionNode, ExpressionNode)>),
     Equal(Box<(ExpressionNode, ExpressionNode)>),
+    Filter(Box<(ExpressionNode, ExpressionNode)>),
 }
 
 pub mod expression_discriminant {
     pub const PATH: u8 = 0;
     pub const SET: u8 = 1;
     pub const EQUAL: u8 = 2;
+    pub const FILTER: u8 = 3;
 }
 
 impl ExpressionNode {
-    pub fn evaluate(self, value: Arc<Mutex<Value>>) -> Arc<Mutex<Value>> {
+    pub fn evaluate(self, scopes: Vec<Arc<Mutex<Value>>>) -> Arc<Mutex<Value>> {
         match self {
-            ExpressionNode::Path(path) => Value::scope(value, &path).unwrap(),
+            ExpressionNode::Path(path) => Value::scope_scopes(scopes, &path).unwrap(),
             ExpressionNode::Set(operands) => {
                 let (left_expression, right_expression) = *operands;
 
-                *left_expression.evaluate(value.clone()).lock().unwrap() = right_expression
-                    .evaluate(value.clone())
+                *left_expression.evaluate(scopes).lock().unwrap() = right_expression
+                    .evaluate(scopes.clone())
                     .lock()
                     .unwrap()
                     .clone();
@@ -37,8 +40,8 @@ impl ExpressionNode {
             ExpressionNode::Equal(operands) => {
                 let (left_expression, right_expression) = *operands;
 
-                let left_value = left_expression.evaluate(value.clone());
-                let right_value = right_expression.evaluate(value);
+                let left_value = left_expression.evaluate(scopes.clone());
+                let right_value = right_expression.evaluate(scopes);
 
                 Arc::new(Mutex::new(Value::Boolean(
                     left_value
@@ -46,6 +49,35 @@ impl ExpressionNode {
                         .lock()
                         .unwrap()
                         .equal(&right_value.clone().lock().unwrap()),
+                )))
+            }
+            ExpressionNode::Filter(operands) => {
+                let (left_expression, right_expression) = *operands;
+
+                let left_value = left_expression.evaluate(scopes.clone());
+
+                let Value::List(values) = &*left_value.lock().unwrap() else {
+                    panic!()
+                };
+
+                Arc::new(Mutex::new(Value::List(
+                    values
+                        .iter()
+                        .filter(|value| {
+                            match *right_expression
+                                .clone()
+                                .evaluate(
+                                    scopes.iter().cloned().chain([(**value).clone()]).collect(),
+                                )
+                                .lock()
+                                .unwrap()
+                            {
+                                Value::Boolean(keep) => keep,
+                                _ => panic!(),
+                            }
+                        })
+                        .cloned()
+                        .collect(),
                 )))
             }
         }
@@ -56,6 +88,7 @@ impl ExpressionNode {
             ExpressionNode::Path(_) => expression_discriminant::PATH,
             ExpressionNode::Set(_) => expression_discriminant::SET,
             ExpressionNode::Equal(_) => expression_discriminant::EQUAL,
+            ExpressionNode::Filter(_) => expression_discriminant::FILTER,
         }
     }
 
@@ -90,6 +123,10 @@ impl ExpressionNode {
                 Box::pin(Self::read(read)).await?,
             ))),
             expression_discriminant::EQUAL => Self::Equal(Box::new((
+                Box::pin(Self::read(read)).await?,
+                Box::pin(Self::read(read)).await?,
+            ))),
+            expression_discriminant::FILTER => Self::Filter(Box::new((
                 Box::pin(Self::read(read)).await?,
                 Box::pin(Self::read(read)).await?,
             ))),
@@ -129,6 +166,10 @@ impl ExpressionNode {
                 Box::pin(operands.as_ref().1.write(write)).await?;
             }
             ExpressionNode::Equal(operands) => {
+                Box::pin(operands.as_ref().0.write(write)).await?;
+                Box::pin(operands.as_ref().1.write(write)).await?;
+            }
+            ExpressionNode::Filter(operands) => {
                 Box::pin(operands.as_ref().0.write(write)).await?;
                 Box::pin(operands.as_ref().1.write(write)).await?;
             }

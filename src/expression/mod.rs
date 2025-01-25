@@ -15,5 +15,5 @@ pub use self::{
         UnitExpression, VecExpression,
     },
     node::{expression_discriminant, ExpressionNode},
-    operators::{Equal, EqualExpression, Set, SetExpression},
+    operators::{Equal, EqualExpression, Filter, FilterExpression, Set, SetExpression},
 };

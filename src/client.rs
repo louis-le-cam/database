@@ -5,7 +5,7 @@ use tokio::{
     net::{TcpStream, ToSocketAddrs},
 };
 
-use crate::{Expression, FromPath, Schema, SchemaNode};
+use crate::{Expression, FromPath, Schema, SchemaNode, Scope};
 
 pub struct Client<S: Schema + Send + Sync> {
     tcp: TcpStream,
@@ -30,7 +30,9 @@ impl<S: Schema + Send + Sync> Client<S> {
         &mut self,
         query: impl FnOnce(S::Expression) -> E,
     ) -> io::Result<E::Target> {
-        let expression = (query)(<S::Expression as FromPath>::from_path(Vec::new()));
+        Scope::create();
+        let expression = (query)(<S::Expression as FromPath>::from_path(vec![0]));
+        Scope::delete();
 
         self.tcp.write_u8(1).await?;
 

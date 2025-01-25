@@ -46,7 +46,7 @@ impl Database {
                 1 => {
                     ExpressionNode::read(&mut tcp)
                         .await?
-                        .evaluate(self.value.clone())
+                        .evaluate(vec![self.value.clone()])
                         .lock()
                         .unwrap()
                         .write(&mut tcp)

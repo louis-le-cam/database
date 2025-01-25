@@ -7,7 +7,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use crate::{io_error, SchemaNode};
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Value {
     Product(Vec<Arc<Mutex<Value>>>),
     Sum(u32, Arc<Mutex<Value>>),
@@ -19,7 +19,17 @@ pub enum Value {
 }
 
 impl Value {
-    pub fn scope(value: Arc<Mutex<Value>>, path: &[u32]) -> Option<Arc<Mutex<Self>>> {
+    pub fn scope_scopes(scopes: Vec<Arc<Mutex<Self>>>, path: &[u32]) -> Option<Arc<Mutex<Self>>> {
+        let Some((segment, segments)) = path.split_first() else {
+            return None;
+        };
+
+        scopes
+            .get(*segment as usize)
+            .and_then(|value| Value::scope(value.clone(), segments))
+    }
+
+    pub fn scope(value: Arc<Mutex<Self>>, path: &[u32]) -> Option<Arc<Mutex<Self>>> {
         let Some((segment, segments)) = path.split_first() else {
             return Some(value.clone());
         };

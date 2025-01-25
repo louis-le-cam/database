@@ -3,7 +3,7 @@ use std::{
     time::Duration,
 };
 
-use database::{Client, Database, SchemaNode, Set, Value};
+use database::{Client, Database, Equal, Filter, SchemaNode, Set, Value};
 use tokio::join;
 
 #[tokio::main]
@@ -38,8 +38,18 @@ async fn main() {
 
         dbg!(client.get_schema().await.unwrap());
         // dbg!(client.query(|db| db.0.equal(db.1.get(1))).await.unwrap());
+        dbg!(client.query(|db| db).await.unwrap());
+        dbg!(client
+            .query(|db| Filter::filter(db.1, |string| string.equal(db.0)))
+            .await
+            .unwrap());
+        dbg!(client.query(|db| db).await.unwrap());
         dbg!(client.query(|db| db.0.set(db.1.get(0))).await.unwrap());
         dbg!(client.query(|db| db).await.unwrap());
+        dbg!(client
+            .query(|db| Filter::filter(db.1, |string| string.equal(db.0)))
+            .await
+            .unwrap());
     };
 
     let (database_result, ()) = join!(database.listen("localhost:1234"), client_future);
