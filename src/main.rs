@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use database::{derive_schema, Client, Database, Equal, Filter, SchemaNode, Set, Value};
+use database::{derive_schema, Client, Database, Filter, SchemaNode, Set, StringEqual, Value};
 use tokio::join;
 
 derive_schema! {

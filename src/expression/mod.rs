@@ -17,5 +17,9 @@ pub use self::{
         Uint32Expression, Uint64Expression, Uint8Expression, UnitExpression, VecExpression,
     },
     node::{expression_discriminant, ExpressionNode},
-    operators::{Equal, EqualExpression, Filter, FilterExpression, Set, SetExpression},
+    operators::{
+        EqualExpression, Filter, FilterExpression, Int128Equal, Int16Equal, Int32Equal, Int64Equal,
+        Int8Equal, Set, SetExpression, StringEqual, Uint128Equal, Uint16Equal, Uint32Equal,
+        Uint64Equal, Uint8Equal,
+    },
 };
