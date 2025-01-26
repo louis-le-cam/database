@@ -61,7 +61,7 @@ client.query(|users| {
   - [ ] tuple struct
   - [ ] enum
   - [ ] #[derive] macro instead of macro_rules!
-- [ ] Add a way to modify the schema from the client
+- [x] Add a way to modify the schema from the client
 - [ ] Add more expressions
   - [ ] simple binary operators: && || + - * / %
   - [ ] list operators: push insert remove

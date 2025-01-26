@@ -12,14 +12,14 @@ use tokio::{
 use crate::{io_error, ExpressionNode, SchemaNode, Value};
 
 pub struct Database {
-    schema: SchemaNode,
+    schema: Arc<Mutex<SchemaNode>>,
     value: Arc<Mutex<Value>>,
 }
 
 impl Database {
     pub fn new(schema: SchemaNode, value: Value) -> Database {
         Self {
-            schema,
+            schema: Arc::new(Mutex::new(schema)),
             value: Arc::new(Mutex::new(value)),
         }
     }
@@ -42,8 +42,15 @@ impl Database {
     pub async fn handle_connection(&self, mut tcp: TcpStream) -> io::Result<()> {
         loop {
             match tcp.read_u8().await? {
-                0 => self.schema.write(&mut tcp).await?,
+                0 => self.schema.lock().unwrap().write(&mut tcp).await?,
                 1 => {
+                    let schema = SchemaNode::read(&mut tcp).await?;
+                    let value = Value::read(&schema, &mut tcp).await?;
+
+                    *self.schema.lock().unwrap() = schema;
+                    *self.value.lock().unwrap() = value;
+                }
+                2 => {
                     ExpressionNode::read(&mut tcp)
                         .await?
                         .evaluate(vec![self.value.clone()])

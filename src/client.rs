@@ -26,6 +26,21 @@ impl<S: Schema + Send + Sync> Client<S> {
         SchemaNode::read(&mut self.tcp).await
     }
 
+    pub async fn set<NewS: Schema + Send + Sync>(
+        mut self,
+        value: NewS,
+    ) -> io::Result<Client<NewS>> {
+        self.tcp.write_u8(1).await?;
+
+        NewS::write_schema(&mut self.tcp).await?;
+        value.write_value(&mut self.tcp).await?;
+
+        Ok(Client {
+            tcp: self.tcp,
+            _marker: PhantomData,
+        })
+    }
+
     pub async fn query<E: Expression>(
         &mut self,
         query: impl FnOnce(S::Expression) -> E,
@@ -34,7 +49,7 @@ impl<S: Schema + Send + Sync> Client<S> {
         let expression = (query)(<S::Expression as FromPath>::from_path(vec![0]));
         Scope::delete();
 
-        self.tcp.write_u8(1).await?;
+        self.tcp.write_u8(2).await?;
 
         expression.write(&mut self.tcp).await?;
 
