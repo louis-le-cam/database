@@ -1,6 +1,8 @@
 use std::time::Duration;
 
-use database::{derive_schema, Client, Database, Filter, SchemaNode, Set, StringEqual, Value};
+use database::{
+    derive_schema, And, Client, Database, Filter, Int16Equal, SchemaNode, Set, StringEqual, Value,
+};
 use tokio::join;
 
 derive_schema! {
@@ -50,7 +52,7 @@ async fn main() {
         dbg!(client
             .query(|users| users
                 .clone()
-                .set(users.filter(|user| user.name.equal("user 1"))))
+                .set(users.filter(|user| user.name.equal("user 1").and(user.test2.equal(-12i16)))))
             .await
             .unwrap());
         dbg!(client.query(|users| users).await.unwrap());

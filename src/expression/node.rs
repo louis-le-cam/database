@@ -14,6 +14,7 @@ pub enum ExpressionNode {
     Set(Box<(ExpressionNode, ExpressionNode)>),
     Equal(Box<(ExpressionNode, ExpressionNode)>),
     Filter(Box<(ExpressionNode, ExpressionNode)>),
+    And(Box<(ExpressionNode, ExpressionNode)>),
 }
 
 pub mod expression_discriminant {
@@ -22,6 +23,7 @@ pub mod expression_discriminant {
     pub const SET: u8 = 2;
     pub const EQUAL: u8 = 3;
     pub const FILTER: u8 = 4;
+    pub const AND: u8 = 5;
 }
 
 impl ExpressionNode {
@@ -83,6 +85,21 @@ impl ExpressionNode {
                         .collect(),
                 )))
             }
+            ExpressionNode::And(operands) => {
+                let (left_expression, right_expression) = *operands;
+
+                let Value::Boolean(lhs) = *left_expression.evaluate(scopes.clone()).lock().unwrap()
+                else {
+                    panic!();
+                };
+                let Value::Boolean(rhs) =
+                    *right_expression.evaluate(scopes.clone()).lock().unwrap()
+                else {
+                    panic!();
+                };
+
+                Arc::new(Mutex::new(Value::Boolean(lhs && rhs)))
+            }
         }
     }
 
@@ -93,6 +110,7 @@ impl ExpressionNode {
             ExpressionNode::Set(_) => expression_discriminant::SET,
             ExpressionNode::Equal(_) => expression_discriminant::EQUAL,
             ExpressionNode::Filter(_) => expression_discriminant::FILTER,
+            ExpressionNode::And(_) => expression_discriminant::AND,
         }
     }
 
@@ -136,6 +154,10 @@ impl ExpressionNode {
                 Box::pin(Self::read(read)).await?,
             ))),
             expression_discriminant::FILTER => Self::Filter(Box::new((
+                Box::pin(Self::read(read)).await?,
+                Box::pin(Self::read(read)).await?,
+            ))),
+            expression_discriminant::AND => Self::And(Box::new((
                 Box::pin(Self::read(read)).await?,
                 Box::pin(Self::read(read)).await?,
             ))),
@@ -183,6 +205,10 @@ impl ExpressionNode {
                 Box::pin(operands.as_ref().1.write(write)).await?;
             }
             ExpressionNode::Filter(operands) => {
+                Box::pin(operands.as_ref().0.write(write)).await?;
+                Box::pin(operands.as_ref().1.write(write)).await?;
+            }
+            ExpressionNode::And(operands) => {
                 Box::pin(operands.as_ref().0.write(write)).await?;
                 Box::pin(operands.as_ref().1.write(write)).await?;
             }
