@@ -1,14 +1,19 @@
 mod bool;
+mod numeric;
 mod option;
 mod string;
 mod tuple;
-mod uint32;
 mod unit;
 mod value;
 mod vec;
 
 pub use self::{
     bool::BoolExpression,
+    numeric::{
+        Float32Expression, Float64Expression, Int128Expression, Int16Expression, Int32Expression,
+        Int64Expression, Int8Expression, Uint128Expression, Uint16Expression, Uint32Expression,
+        Uint64Expression, Uint8Expression,
+    },
     option::OptionExpression,
     string::StringExpression,
     tuple::{

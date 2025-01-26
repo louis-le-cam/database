@@ -52,9 +52,9 @@ client.query(|users| {
 ```
 
 ## Next steps
-- [ ] Add more data types
-  - [ ] integers of different size, signed and unsigned
-  - [ ] floating points
+- [x] Add more data types
+  - [x] integers of different size, signed and unsigned
+  - [x] floating points
 - [ ] Add macro to implements `Schema` trait for user-defined types
   - [x] unit struct
   - [x] struct with named fields
