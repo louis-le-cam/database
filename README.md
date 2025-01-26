@@ -52,6 +52,9 @@ client.query(|users| {
 ```
 
 ## Next steps
+- [ ] Add more data types
+  - [ ] integers of different size, signed and unsigned
+  - [ ] floating points
 - [ ] Add macro to implements `Schema` trait for user-defined types
 - [ ] Add more expressions
   - [ ] simple binary operators: && || + - * / %
