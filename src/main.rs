@@ -3,50 +3,55 @@ use std::{
     time::Duration,
 };
 
-use database::{Client, Database, Equal, Filter, SchemaNode, Set, Value};
+use database::{derive_schema, Client, Database, Equal, Filter, SchemaNode, Set, Value};
 use tokio::join;
+
+derive_schema! {
+    #[derive(Debug)]
+    struct User {
+        name: String,
+        email: Option<String>,
+    }
+}
 
 #[tokio::main]
 async fn main() {
     let mut database = Database::new(
-        SchemaNode::Product(vec![
+        SchemaNode::List(Box::new(SchemaNode::Product(vec![
             SchemaNode::String,
-            SchemaNode::List(Box::new(SchemaNode::String)),
-            SchemaNode::Sum(vec![SchemaNode::Unit, SchemaNode::Uint32]),
-        ]),
-        Value::Product(vec![
-            Arc::new(Mutex::new(Value::String("string 1".to_string()))),
-            Arc::new(Mutex::new(Value::List(vec![
-                Arc::new(Mutex::new(Value::String("string 1".to_string()))),
-                Arc::new(Mutex::new(Value::String("string 2".to_string()))),
-                Arc::new(Mutex::new(Value::String("string 1".to_string()))),
-                Arc::new(Mutex::new(Value::String("string 3".to_string()))),
+            SchemaNode::Sum(vec![SchemaNode::Unit, SchemaNode::String]),
+        ]))),
+        Value::List(vec![
+            Arc::new(Mutex::new(Value::Product(vec![
+                Arc::new(Mutex::new(Value::String("user 1".to_string()))),
+                Arc::new(Mutex::new(Value::Sum(0, Arc::new(Mutex::new(Value::Unit))))),
             ]))),
-            Arc::new(Mutex::new(Value::Sum(
-                1,
-                Arc::new(Mutex::new(Value::Uint32(8349342))),
-            ))),
+            Arc::new(Mutex::new(Value::Product(vec![
+                Arc::new(Mutex::new(Value::String("user 2".to_string()))),
+                Arc::new(Mutex::new(Value::Sum(
+                    1,
+                    Arc::new(Mutex::new(Value::String("user2@mail.xyz".to_string()))),
+                ))),
+            ]))),
         ]),
     );
 
     let client_future = async {
         tokio::time::sleep(Duration::from_millis(10)).await;
 
-        let mut client = Client::<(String, Vec<String>, Option<u32>)>::connect("localhost:1234")
+        let mut client = Client::<Vec<User>>::connect("localhost:1234")
             .await
             .unwrap();
 
         dbg!(client.get_schema().await.unwrap());
-        // dbg!(client.query(|db| db.0.equal(db.1.get(1))).await.unwrap());
-        dbg!(client.query(|db| db).await.unwrap());
+        dbg!(client.query(|users| users).await.unwrap());
         dbg!(client
-            .query(|db| db
-                .1
+            .query(|users| users
                 .clone()
-                .set(Filter::filter(db.1, |string| string.equal("string 1"))))
+                .set(users.filter(|user| user.name.equal("user 1"))))
             .await
             .unwrap());
-        dbg!(client.query(|db| db).await.unwrap());
+        dbg!(client.query(|users| users).await.unwrap());
     };
 
     let (database_result, ()) = join!(database.listen("localhost:1234"), client_future);

@@ -1,3 +1,4 @@
+mod derive;
 mod impls;
 mod node;
 mod schema;
