@@ -15,6 +15,7 @@ pub enum ExpressionNode {
     Equal(Box<(ExpressionNode, ExpressionNode)>),
     Filter(Box<(ExpressionNode, ExpressionNode)>),
     And(Box<(ExpressionNode, ExpressionNode)>),
+    MapVariant(Box<(ExpressionNode, u32, ExpressionNode)>),
 }
 
 pub mod expression_discriminant {
@@ -24,6 +25,7 @@ pub mod expression_discriminant {
     pub const EQUAL: u8 = 3;
     pub const FILTER: u8 = 4;
     pub const AND: u8 = 5;
+    pub const MAP_VARIANT: u8 = 6;
 }
 
 impl ExpressionNode {
@@ -100,6 +102,25 @@ impl ExpressionNode {
 
                 Arc::new(Mutex::new(Value::Boolean(lhs && rhs)))
             }
+            ExpressionNode::MapVariant(operands) => {
+                let (left_expression, target_discriminant, right_expression) = *operands;
+
+                let lhs = left_expression.evaluate(scopes.clone());
+
+                let Value::Sum(discriminant, variant) = &*lhs.lock().unwrap() else {
+                    panic!();
+                };
+
+                if *discriminant == target_discriminant {
+                    Arc::new(Mutex::new(Value::Sum(
+                        *discriminant,
+                        right_expression
+                            .evaluate(scopes.iter().cloned().chain([variant.clone()]).collect()),
+                    )))
+                } else {
+                    lhs.clone()
+                }
+            }
         }
     }
 
@@ -111,6 +132,7 @@ impl ExpressionNode {
             ExpressionNode::Equal(_) => expression_discriminant::EQUAL,
             ExpressionNode::Filter(_) => expression_discriminant::FILTER,
             ExpressionNode::And(_) => expression_discriminant::AND,
+            ExpressionNode::MapVariant(_) => expression_discriminant::MAP_VARIANT,
         }
     }
 
@@ -159,6 +181,11 @@ impl ExpressionNode {
             ))),
             expression_discriminant::AND => Self::And(Box::new((
                 Box::pin(Self::read(read)).await?,
+                Box::pin(Self::read(read)).await?,
+            ))),
+            expression_discriminant::MAP_VARIANT => Self::MapVariant(Box::new((
+                Box::pin(Self::read(read)).await?,
+                read.read_u32().await?,
                 Box::pin(Self::read(read)).await?,
             ))),
             _ => {
@@ -211,6 +238,11 @@ impl ExpressionNode {
             ExpressionNode::And(operands) => {
                 Box::pin(operands.as_ref().0.write(write)).await?;
                 Box::pin(operands.as_ref().1.write(write)).await?;
+            }
+            ExpressionNode::MapVariant(operands) => {
+                Box::pin(operands.as_ref().0.write(write)).await?;
+                write.write_u32(operands.as_ref().1).await?;
+                Box::pin(operands.as_ref().2.write(write)).await?;
             }
         }
 
