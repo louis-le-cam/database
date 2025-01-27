@@ -307,7 +307,6 @@ fn derive_struct_unit(name: Ident) -> proc_macro2::TokenStream {
 
 fn derive_enum(name: Ident, data: DataEnum) -> proc_macro2::TokenStream {
     let variant_count = data.variants.len() as u32;
-    let variant_names = data.variants.iter().map(|variant| &variant.ident);
 
     let write_schemas = data.variants.iter().map(|variant| match &variant.fields {
         Fields::Named(fields) if fields.named.len() != 0 => {
