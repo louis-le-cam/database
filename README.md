@@ -8,28 +8,24 @@ This database implements [algebraic data types](https://en.wikipedia.org/wiki/Al
 to make your schema closer to your actual values, a typesystem that correctly represent data can avoid lots of mistakes
 
 ```rust
-// A #[derive] macro will be added later
-derive_schema!{
-  // enum schema derivation is not yet implemented
-  enum Shape {
-    Rectangle {
-      width: f32,
-      height: f32,
-    },
-    Triangle {
-      a: (f32, f32),
-      b: (f32, f32),
-      c: (f32, f32),
-    },
-    Circle {
-      radius: f32,
-    }
-  }
+#[derive(Shape)]
+enum Shape {
+  Rectangle {
+    width: f32,
+    height: f32,
+  },
+  Triangle {
+    a: (f32, f32),
+    b: (f32, f32),
+    c: (f32, f32),
+  },
+  Circle(f32),
+}
 
-  struct User {
-    name: String,
-    favorite_shape: Option<Shape>,
-  }
+#[derive(Schema)]
+struct User {
+  name: String,
+  favorite_shape: Option<Shape>,
 }
 ```
 
@@ -46,7 +42,11 @@ client.query(|users| {
 client.query(|users| {
   // `push` is not yet implement
   users.push(User {
-    name: "some user"
+    name: "some user",
+    favorite_shape: Some(Shape::Rectangle {
+      width: 32.0,
+      height: 16.8,
+    }),
   })
 });
 ```
@@ -55,12 +55,12 @@ client.query(|users| {
 - [x] Add more data types
   - [x] integers of different size, signed and unsigned
   - [x] floating points
-- [ ] Add macro to implements `Schema` trait for user-defined types
+- [x] Add macro to implements `Schema` trait for user-defined types
   - [x] unit struct
   - [x] struct with named fields
-  - [ ] tuple struct
-  - [ ] enum
-  - [ ] #[derive] macro instead of macro_rules!
+  - [x] tuple struct
+  - [x] enum
+  - [x] #[derive] macro instead of macro_rules!
 - [x] Add a way to modify the schema from the client
 - [ ] Add more expressions
   - [ ] simple binary operators: && || + - * / %

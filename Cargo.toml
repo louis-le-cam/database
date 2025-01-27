@@ -3,5 +3,9 @@ name = "database"
 version = "0.1.0"
 edition = "2021"
 
+[workspace]
+members = ["derive"]
+
 [dependencies]
 tokio = { version = "1.43.0", features = ["rt", "rt-multi-thread", "macros", "net", "io-util", "time"] }
+database_derive = { path = "derive" }

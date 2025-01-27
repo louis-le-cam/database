@@ -25,7 +25,14 @@ pub use crate::{
     value::Value,
 };
 
+pub use database_derive::Schema;
+
 pub(crate) use crate::scope::Scope;
+
+#[doc(hidden)]
+pub mod __internal {
+    pub use tokio;
+}
 
 macro_rules! io_error {
     ($kind:ident, $message:literal $(,)?) => {

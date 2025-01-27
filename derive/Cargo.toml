@@ -1,0 +1,12 @@
+[package]
+name = "database_derive"
+edition = "2021"
+version = "0.1.0"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0.93"
+syn = "2.0.96"
+quote = "1.0.38"

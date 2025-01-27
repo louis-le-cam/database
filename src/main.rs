@@ -1,20 +1,30 @@
 use std::time::Duration;
 
-use database::{
-    derive_schema, And, Client, Database, Filter, Int16Equal, SchemaNode, Set, StringEqual, Value,
-};
+use database::{Client, Database, Filter, Schema, SchemaNode, Set, StringEqual as _, Value};
 use tokio::join;
 
-derive_schema! {
-    #[derive(Debug)]
-    struct User {
-        name: String,
-        email: Option<String>,
-        test1: u128,
-        test2: i16,
-        test3: f32,
-        test4: f64,
-    }
+#[derive(Schema, Debug)]
+struct User {
+    name: String,
+    location: Location,
+    shape: Option<Shape>,
+}
+
+#[derive(Schema, Debug)]
+struct Location(f32, f32);
+
+#[derive(Schema, Debug)]
+enum Shape {
+    Rectangle {
+        width: f32,
+        height: f32,
+    },
+    Triangle {
+        a: (f32, f32),
+        b: (f32, f32),
+        c: (f32, f32),
+    },
+    Circle(f32),
 }
 
 #[tokio::main]
@@ -30,19 +40,22 @@ async fn main() {
             .set(vec![
                 User {
                     name: "user 1".to_string(),
-                    email: None,
-                    test1: 89482942842794729472894721842947297494,
-                    test2: -12,
-                    test3: 8294829452839424242.24982438293839242,
-                    test4: 8294829452839424242.24982438293839242,
+                    location: Location(
+                        8294829452839424242.24982438293839242,
+                        -1151271151278511612757575.57121157611512611612575,
+                    ),
+                    shape: None,
                 },
                 User {
                     name: "user 2".to_string(),
-                    email: Some("user2@mail.xyz".to_string()),
-                    test1: 91059310539538105831058391058329531058,
-                    test2: 1832,
-                    test3: -1151271151278511612757575.57121157611512611612575,
-                    test4: -1151271151278511612757575.57121157611512611612575,
+                    location: Location(
+                        -22722978511612757575.57121157611512611612575,
+                        44845451011844945108108108.81045448109448459449458108,
+                    ),
+                    shape: Some(Shape::Rectangle {
+                        width: 32.0,
+                        height: 16.8,
+                    }),
                 },
             ])
             .await
@@ -52,7 +65,7 @@ async fn main() {
         dbg!(client
             .query(|users| users
                 .clone()
-                .set(users.filter(|user| user.name.equal("user 1").and(user.test2.equal(-12i16)))))
+                .set(users.filter(|user| { user.name.equal("user 1") })))
             .await
             .unwrap());
         dbg!(client.query(|users| users).await.unwrap());
