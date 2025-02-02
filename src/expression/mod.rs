@@ -18,8 +18,8 @@ pub use self::{
     },
     node::{expression_discriminant, ExpressionNode},
     operators::{
-        And, AndExpression, EqualExpression, Filter, FilterExpression, Int128Equal, Int16Equal,
-        Int32Equal, Int64Equal, Int8Equal, Set, SetExpression, StringEqual, Uint128Equal,
-        Uint16Equal, Uint32Equal, Uint64Equal, Uint8Equal,
+        And, AndExpression, Chain, ChainExpression, EqualExpression, Filter, FilterExpression,
+        Int128Equal, Int16Equal, Int32Equal, Int64Equal, Int8Equal, Set, SetExpression,
+        StringEqual, Uint128Equal, Uint16Equal, Uint32Equal, Uint64Equal, Uint8Equal,
     },
 };

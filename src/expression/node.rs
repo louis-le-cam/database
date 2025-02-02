@@ -16,6 +16,7 @@ pub enum ExpressionNode {
     Filter(Box<(ExpressionNode, ExpressionNode)>),
     And(Box<(ExpressionNode, ExpressionNode)>),
     MapVariant(Box<(ExpressionNode, u32, ExpressionNode)>),
+    Chain(Box<(ExpressionNode, ExpressionNode)>),
 }
 
 pub mod expression_discriminant {
@@ -26,6 +27,7 @@ pub mod expression_discriminant {
     pub const FILTER: u8 = 4;
     pub const AND: u8 = 5;
     pub const MAP_VARIANT: u8 = 6;
+    pub const CHAIN: u8 = 7;
 }
 
 impl ExpressionNode {
@@ -121,6 +123,12 @@ impl ExpressionNode {
                     lhs.clone()
                 }
             }
+            ExpressionNode::Chain(operands) => {
+                let (left_expression, right_expression) = *operands;
+
+                left_expression.evaluate(scopes.clone());
+                right_expression.evaluate(scopes)
+            }
         }
     }
 
@@ -133,6 +141,7 @@ impl ExpressionNode {
             ExpressionNode::Filter(_) => expression_discriminant::FILTER,
             ExpressionNode::And(_) => expression_discriminant::AND,
             ExpressionNode::MapVariant(_) => expression_discriminant::MAP_VARIANT,
+            ExpressionNode::Chain(_) => expression_discriminant::CHAIN,
         }
     }
 
@@ -186,6 +195,10 @@ impl ExpressionNode {
             expression_discriminant::MAP_VARIANT => Self::MapVariant(Box::new((
                 Box::pin(Self::read(read)).await?,
                 read.read_u32().await?,
+                Box::pin(Self::read(read)).await?,
+            ))),
+            expression_discriminant::CHAIN => Self::Chain(Box::new((
+                Box::pin(Self::read(read)).await?,
                 Box::pin(Self::read(read)).await?,
             ))),
             _ => {
@@ -243,6 +256,10 @@ impl ExpressionNode {
                 Box::pin(operands.as_ref().0.write(write)).await?;
                 write.write_u32(operands.as_ref().1).await?;
                 Box::pin(operands.as_ref().2.write(write)).await?;
+            }
+            ExpressionNode::Chain(operands) => {
+                Box::pin(operands.as_ref().0.write(write)).await?;
+                Box::pin(operands.as_ref().1.write(write)).await?;
             }
         }
 

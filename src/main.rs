@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use database::{Client, Database, Filter, Schema, SchemaNode, Set, StringEqual as _, Value};
+use database::{Chain, Client, Database, Filter, Schema, SchemaNode, Set, StringEqual as _, Value};
 use tokio::join;
 
 #[derive(Schema, Debug)]
@@ -65,10 +65,10 @@ async fn main() {
         dbg!(client
             .query(|users| users
                 .clone()
-                .set(users.filter(|user| { user.name.equal("user 1") })))
+                .set(users.clone().filter(|user| { user.name.equal("user 1") }))
+                .chain(users))
             .await
             .unwrap());
-        dbg!(client.query(|users| users).await.unwrap());
     };
 
     let (database_result, ()) = join!(database.listen("localhost:1234"), client_future);
