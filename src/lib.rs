@@ -1,6 +1,7 @@
 mod client;
 mod database;
 mod expression;
+pub mod protocol;
 mod schema;
 mod scope;
 mod value;
