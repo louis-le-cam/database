@@ -10,7 +10,7 @@ mod value_write;
 pub use self::{
     expression_read::{ExpressionRead, ExpressionReadResult},
     expression_write::ExpressionWrite,
-    request_read::RequestRead,
+    request_read::{RequestRead, RequestReadResult},
     request_write::RequestWrite,
     schema_read::{SchemaRead, SchemaReadResult, SchemasRead},
     schema_write::{SchemaWrite, SchemasWrite},
