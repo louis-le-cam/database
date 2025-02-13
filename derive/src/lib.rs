@@ -74,22 +74,14 @@ fn derive_struct_named(
                 impl ::database::Expression for Expression {
                     type Target = super::#name;
 
-                    async fn write(self, write: &mut (impl ::database::__internal::tokio::io::AsyncWriteExt + ::std::marker::Unpin)) -> ::std::io::Result<()> {
-                        write.write_u8(::database::expression_discriminant::PATH).await?;
-                        write
-                            .write_u32(self.__internal_path.len().try_into().map_err(|_| {
-                                ::std::io::Error::new(
-                                    ::std::io::ErrorKind::OutOfMemory,
-                                    ::std::concat!(::std::env!("CARGO_CRATE_NAME"), ": ", "path expression length doesn't fit into a 32 bit unsigned integer")
-                                )
-                            })?)
-                            .await?;
-
-                        for segment in &self.__internal_path {
-                            write.write_u32(*segment).await?;
-                        }
-
-                        Ok(())
+                    async fn write<
+                        S: ::database::__internal::tokio::io::AsyncWriteExt + ::database::__internal::tokio::io::AsyncReadExt + ::std::marker::Unpin,
+                        Next: ::database::protocol::FromStream<S>
+                    >(
+                        self,
+                        write: ::database::protocol::ExpressionWrite<S, Next>,
+                    ) -> ::std::io::Result<Next> {
+                        write.path(&self.__internal_path).await
                     }
                 }
 
@@ -105,36 +97,54 @@ fn derive_struct_named(
                 impl ::database::Schema for super::#name {
                     type Expression = Expression;
 
-                    fn write_schema(
-                        write: &mut (impl ::database::__internal::tokio::io::AsyncWriteExt + ::std::marker::Unpin + ::std::marker::Send),
-                    ) -> impl ::std::future::Future<Output = ::std::io::Result<()>> + ::std::marker::Send {
+                    fn write_schema<
+                        S: ::database::__internal::tokio::io::AsyncWriteExt + ::database::__internal::tokio::io::AsyncReadExt + ::std::marker::Unpin,
+                        Next: ::database::protocol::FromStream<S>
+                    >(
+                        write: ::database::protocol::SchemaWrite<S, Next>,
+                    ) -> impl ::std::future::Future<Output = ::std::io::Result<Next>> {
                         async {
-                            write.write_u8(::database::schema_discriminant::PRODUCT).await?;
-                            write.write_u32(#field_count).await?;
-                            #(<#field_types as ::database::Schema>::write_schema(write).await?;)*
+                            let fields_write = write.product(#field_count).await?;
+                            #(let fields_write = <#field_types as ::database::Schema>::write_schema(fields_write.add()).await?;)*
 
-                            Ok(())
+                            Ok(fields_write.finish())
                         }
                     }
 
-                    fn write_value(
+                    fn write_value<
+                        S: ::database::__internal::tokio::io::AsyncWriteExt + ::database::__internal::tokio::io::AsyncReadExt + ::std::marker::Unpin,
+                        Next: ::database::protocol::FromStream<S>
+                    >(
                         &self,
-                        write: &mut (impl ::database::__internal::tokio::io::AsyncWriteExt + ::std::marker::Unpin + ::std::marker::Send),
-                    ) -> impl ::std::future::Future<Output = ::std::io::Result<()>> + ::std::marker::Send {
+                        write: ::database::protocol::ValueWrite<S, Next>,
+                    ) -> impl ::std::future::Future<Output = ::std::io::Result<Next>> {
                         async {
-                            #(self.#field_names.write_value(write).await?;)*
+                            let fields_write = write.product();
+                            #(let fields_write = self.#field_names.write_value(fields_write.add()).await?;)*
 
-                            Ok(())
+                            Ok(fields_write.finish())
                         }
                     }
 
-                    fn read_value(
-                        read: &mut (impl ::database::__internal::tokio::io::AsyncReadExt + ::std::marker::Unpin + ::std::marker::Send),
-                    ) -> impl ::std::future::Future<Output = ::std::io::Result<Self>> + ::std::marker::Send {
+                    fn read_value<
+                        S: ::database::__internal::tokio::io::AsyncWriteExt + ::database::__internal::tokio::io::AsyncReadExt + ::std::marker::Unpin,
+                        Next: ::database::protocol::FromStream<S>
+                    >(
+                        read: ::database::protocol::ValueRead<S, Next>,
+                    ) -> impl ::std::future::Future<Output = ::std::io::Result<(Self, Next)>> {
                         async {
-                            Ok(Self {
-                                #(#field_names: <#field_types as ::database::Schema>::read_value(read).await?,)*
-                            })
+                            let mut fields_read = read.product();
+
+                            Ok((
+                                Self {
+                                    #(#field_names: {
+                                        let (value, next) = <#field_types as ::database::Schema>::read_value(fields_read.next()).await?;
+                                        fields_read = next;
+                                        value
+                                    },)*
+                                },
+                                fields_read.finish(),
+                            ))
                         }
                     }
                 }
@@ -177,22 +187,14 @@ fn derive_struct_unnamed(
                 impl ::database::Expression for Expression {
                     type Target = super::#name;
 
-                    async fn write(self, write: &mut (impl ::database::__internal::tokio::io::AsyncWriteExt + ::std::marker::Unpin)) -> ::std::io::Result<()> {
-                        write.write_u8(::database::expression_discriminant::PATH).await?;
-                        write
-                            .write_u32(self.#path_index.len().try_into().map_err(|_| {
-                                ::std::io::Error::new(
-                                    ::std::io::ErrorKind::OutOfMemory,
-                                    ::std::concat!(::std::env!("CARGO_CRATE_NAME"), ": ", "path expression length doesn't fit into a 32 bit unsigned integer")
-                                )
-                            })?)
-                            .await?;
-
-                        for segment in &self.#path_index {
-                            write.write_u32(*segment).await?;
-                        }
-
-                        Ok(())
+                    async fn write<
+                        S: ::database::__internal::tokio::io::AsyncWriteExt + ::database::__internal::tokio::io::AsyncReadExt + ::std::marker::Unpin,
+                        Next: ::database::protocol::FromStream<S>
+                    >(
+                        self,
+                        write: ::database::protocol::ExpressionWrite<S, Next>,
+                    ) -> ::std::io::Result<Next> {
+                        write.path(&self.#path_index).await
                     }
                 }
 
@@ -208,35 +210,53 @@ fn derive_struct_unnamed(
                 impl ::database::Schema for super::#name {
                     type Expression = Expression;
 
-                    fn write_schema(
-                        write: &mut (impl ::database::__internal::tokio::io::AsyncWriteExt + ::std::marker::Unpin + ::std::marker::Send),
-                    ) -> impl ::std::future::Future<Output = ::std::io::Result<()>> + ::std::marker::Send {
+                    fn write_schema<
+                        S: ::database::__internal::tokio::io::AsyncWriteExt + ::database::__internal::tokio::io::AsyncReadExt + ::std::marker::Unpin,
+                        Next: ::database::protocol::FromStream<S>
+                    >(
+                        write: ::database::protocol::SchemaWrite<S, Next>,
+                    ) -> impl ::std::future::Future<Output = ::std::io::Result<Next>> {
                         async {
-                            write.write_u8(::database::schema_discriminant::PRODUCT).await?;
-                            write.write_u32(#field_count).await?;
-                            #(<#field_types as ::database::Schema>::write_schema(write).await?;)*
+                            let fields_write = write.product(#field_count).await?;
+                            #(let fields_write = <#field_types as ::database::Schema>::write_schema(fields_write.add()).await?;)*
 
-                            Ok(())
+                            Ok(fields_write.finish())
                         }
                     }
 
-                    fn write_value(
+                    fn write_value<
+                        S: ::database::__internal::tokio::io::AsyncWriteExt + ::database::__internal::tokio::io::AsyncReadExt + ::std::marker::Unpin,
+                        Next: ::database::protocol::FromStream<S>
+                    >(
                         &self,
-                        write: &mut (impl ::database::__internal::tokio::io::AsyncWriteExt + ::std::marker::Unpin + ::std::marker::Send),
-                    ) -> impl ::std::future::Future<Output = ::std::io::Result<()>> + ::std::marker::Send {
+                        write: ::database::protocol::ValueWrite<S, Next>,
+                    ) -> impl ::std::future::Future<Output = ::std::io::Result<Next>> {
                         async {
-                            #(self.#field_indexes.write_value(write).await?;)*
+                            let fields_write = write.product();
+                            #(let fields_write = self.#field_indexes.write_value(fields_write.add()).await?;)*
 
-                            Ok(())
+                            Ok(fields_write.finish())
                         }
                     }
 
-                    fn read_value(
-                        read: &mut (impl ::database::__internal::tokio::io::AsyncReadExt + ::std::marker::Unpin + ::std::marker::Send),
-                    ) -> impl ::std::future::Future<Output = ::std::io::Result<Self>> + ::std::marker::Send {
+                    fn read_value<
+                        S: ::database::__internal::tokio::io::AsyncWriteExt + ::database::__internal::tokio::io::AsyncReadExt + ::std::marker::Unpin,
+                        Next: ::database::protocol::FromStream<S>
+                    >(
+                        read: ::database::protocol::ValueRead<S, Next>,
+                    ) -> impl ::std::future::Future<Output = ::std::io::Result<(Self, Next)>> {
                         async {
-                            Ok(Self (
-                                #(<#field_types as ::database::Schema>::read_value(read).await?,)*
+                            let mut fields_read = read.product();
+
+                            Ok((
+                                Self (
+                                    #({
+                                        let (value, next) = <#field_types as ::database::Schema>::read_value(fields_read.next()).await?;
+                                        fields_read = next;
+                                        value
+                                    },)*
+                                ),
+                                fields_read.finish(),
                             ))
                         }
                     }
@@ -254,23 +274,15 @@ fn derive_struct_unit(name: Ident) -> proc_macro2::TokenStream {
             impl ::database::Expression for Expression {
                 type Target = #name;
 
-                async fn write(self, write: &mut (impl ::database::__internal::tokio::io::AsyncWriteExt + ::std::marker::Unpin)) -> ::std::io::Result<()> {
-                    write.write_u8(::database::expression_discriminant::PATH).await?;
-                    write
-                        .write_u32(self.0.len().try_into().map_err(|_| {
-                            ::std::io::Error::new(
-                                ::std::io::ErrorKind::OutOfMemory,
-                                ::std::concat!(::std::env!("CARGO_CRATE_NAME"), ": ", "path expression length doesn't fit into a 32 bit unsigned integer")
-                            )
-                        })?)
-                        .await?;
-
-                    for segment in &self.0 {
-                        write.write_u32(*segment).await?;
+                    async fn write<
+                        S: ::database::__internal::tokio::io::AsyncWriteExt + ::database::__internal::tokio::io::AsyncReadExt + ::std::marker::Unpin,
+                        Next: ::database::protocol::FromStream<S>
+                    >(
+                        self,
+                        write: ::database::protocol::ExpressionWrite<S, Next>,
+                    ) -> ::std::io::Result<Next> {
+                        write.path(&self.0).await
                     }
-
-                    Ok(())
-                }
             }
 
             impl ::database::FromPath for Expression {
@@ -282,23 +294,32 @@ fn derive_struct_unit(name: Ident) -> proc_macro2::TokenStream {
             impl ::database::Schema for #name {
                 type Expression = Expression;
 
-                fn write_schema(
-                    write: &mut (impl ::database::__internal::tokio::io::AsyncWriteExt + ::std::marker::Unpin + ::std::marker::Send),
-                ) -> impl ::std::future::Future<Output = ::std::io::Result<()>> + ::std::marker::Send {
-                    write.write_u8(::database::schema_discriminant::UNIT)
+                fn write_schema<
+                    S: ::database::__internal::tokio::io::AsyncWriteExt + ::database::__internal::tokio::io::AsyncReadExt + ::std::marker::Unpin,
+                    Next: ::database::protocol::FromStream<S>
+                >(
+                    write: ::database::protocol::SchemaWrite<S, Next>,
+                ) -> impl ::std::future::Future<Output = ::std::io::Result<Next>> {
+                    write.unit()
                 }
 
-                fn write_value(
+                fn write_value<
+                    S: ::database::__internal::tokio::io::AsyncWriteExt + ::database::__internal::tokio::io::AsyncReadExt + ::std::marker::Unpin,
+                    Next: ::database::protocol::FromStream<S>
+                >(
                     &self,
-                    _write: &mut (impl ::database::__internal::tokio::io::AsyncWriteExt + ::std::marker::Unpin + ::std::marker::Send),
-                ) -> impl ::std::future::Future<Output = ::std::io::Result<()>> + ::std::marker::Send {
-                    ::std::future::ready(Ok(()))
+                    write: ::database::protocol::ValueWrite<S, Next>,
+                ) -> impl ::std::future::Future<Output = ::std::io::Result<Next>> {
+                    write.unit()
                 }
 
-                fn read_value(
-                    _read: &mut (impl ::database::__internal::tokio::io::AsyncReadExt + ::std::marker::Unpin + ::std::marker::Send),
-                ) -> impl ::std::future::Future<Output = ::std::io::Result<Self>> + ::std::marker::Send {
-                    ::std::future::ready(Ok(Self))
+                fn read_value<
+                    S: ::database::__internal::tokio::io::AsyncWriteExt + ::database::__internal::tokio::io::AsyncReadExt + ::std::marker::Unpin,
+                    Next: ::database::protocol::FromStream<S>
+                >(
+                    read: ::database::protocol::ValueRead<S, Next>,
+                ) -> impl ::std::future::Future<Output = ::std::io::Result<(Self, Next)>> {
+                    async { Ok((Self, read.unit().await?)) }
                 }
             }
         };
@@ -405,22 +426,14 @@ fn derive_enum(name: Ident, data: DataEnum) -> proc_macro2::TokenStream {
             impl ::database::Expression for Expression {
                 type Target = #name;
 
-                async fn write(self, write: &mut (impl ::database::__internal::tokio::io::AsyncWriteExt + ::std::marker::Unpin)) -> ::std::io::Result<()> {
-                    write.write_u8(::database::expression_discriminant::PATH).await?;
-                    write
-                        .write_u32(self.0.len().try_into().map_err(|_| {
-                            ::std::io::Error::new(
-                                ::std::io::ErrorKind::OutOfMemory,
-                                ::std::concat!(::std::env!("CARGO_CRATE_NAME"), ": ", "path expression length doesn't fit into a 32 bit unsigned integer")
-                            )
-                        })?)
-                        .await?;
-
-                    for segment in &self.0 {
-                        write.write_u32(*segment).await?;
-                    }
-
-                    Ok(())
+                async fn write<
+                    S: ::database::__internal::tokio::io::AsyncWriteExt + ::database::__internal::tokio::io::AsyncReadExt + ::std::marker::Unpin,
+                    Next: ::database::protocol::FromStream<S>
+                >(
+                    self,
+                    write: ::database::protocol::ExpressionWrite<S, Next>,
+                ) -> ::std::io::Result<Next> {
+                    write.path(&self.0).await
                 }
             }
 
