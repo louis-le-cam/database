@@ -6,7 +6,7 @@ use std::{
 
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
-    net::{TcpListener, TcpStream, ToSocketAddrs},
+    net::{TcpListener, ToSocketAddrs},
 };
 
 use crate::{io_error, ExpressionNode, SchemaNode, Value};

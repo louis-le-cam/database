@@ -1,4 +1,5 @@
 mod bool;
+mod duration;
 mod numeric;
 mod option;
 mod string;
@@ -9,6 +10,7 @@ mod vec;
 
 pub use self::{
     bool::BoolExpression,
+    duration::DurationExpression,
     numeric::{
         Float32Expression, Float64Expression, Int128Expression, Int16Expression, Int32Expression,
         Int64Expression, Int8Expression, Uint128Expression, Uint16Expression, Uint32Expression,

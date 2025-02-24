@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use database::{Chain, Client, Database, Filter, Schema, SchemaNode, Set, StringEqual as _, Value};
 use tokio::join;
@@ -8,6 +8,7 @@ struct User {
     name: String,
     location: Location,
     shape: Option<Shape>,
+    duration: Duration,
 }
 
 #[derive(Schema, Debug)]
@@ -42,6 +43,7 @@ async fn main() {
                         -1151271151278511612757575.57121157611512611612575,
                     ),
                     shape: None,
+                    duration: Duration::from_secs_f32(12.48),
                 },
                 User {
                     name: "user 2".to_string(),
@@ -53,6 +55,7 @@ async fn main() {
                         width: 32.0,
                         height: 16.8,
                     }),
+                    duration: SystemTime::now().duration_since(UNIX_EPOCH).unwrap(),
                 },
             ])
             .await?;
