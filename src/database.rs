@@ -5,7 +5,7 @@ use std::{
 };
 
 use tokio::{
-    io::AsyncReadExt,
+    io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream, ToSocketAddrs},
 };
 
@@ -24,7 +24,7 @@ impl Database {
         }
     }
 
-    pub async fn listen(&mut self, address: impl ToSocketAddrs) -> io::Result<Infallible> {
+    pub async fn listen_tcp(&self, address: impl ToSocketAddrs) -> io::Result<Infallible> {
         let listener = TcpListener::bind(address).await?;
 
         println!("listening on {}", listener.local_addr().unwrap());
@@ -33,33 +33,38 @@ impl Database {
             let (tcp, address) = listener.accept().await?;
             println!("({address}) connection accepted");
 
-            if let Err(err) = self.handle_connection(tcp).await {
+            if let Err(err) = self.listen(tcp).await {
                 println!("({address}) connection closed, error: {err}");
             }
         }
     }
 
-    pub async fn handle_connection(&self, mut tcp: TcpStream) -> io::Result<()> {
+    pub async fn listen(
+        &self,
+        mut stream: impl AsyncReadExt + AsyncWriteExt + Unpin,
+    ) -> io::Result<()> {
         loop {
-            match tcp.read_u8().await? {
-                0 => self.schema.lock().unwrap().write(&mut tcp).await?,
-                1 => {
-                    let schema = SchemaNode::read(&mut tcp).await?;
-                    let value = Value::read(&schema, &mut tcp).await?;
+            match stream.read_u8().await {
+                Ok(0) => self.schema.lock().unwrap().write(&mut stream).await?,
+                Ok(1) => {
+                    let schema = SchemaNode::read(&mut stream).await?;
+                    let value = Value::read(&schema, &mut stream).await?;
 
                     *self.schema.lock().unwrap() = schema;
                     *self.value.lock().unwrap() = value;
                 }
-                2 => {
-                    ExpressionNode::read(&mut tcp)
+                Ok(2) => {
+                    ExpressionNode::read(&mut stream)
                         .await?
                         .evaluate(vec![self.value.clone()])
                         .lock()
                         .unwrap()
-                        .write(&mut tcp)
+                        .write(&mut stream)
                         .await?;
                 }
-                _ => return Err(io_error!(InvalidData, "invalid discriminant for request")),
+                Ok(_) => return Err(io_error!(InvalidData, "invalid discriminant for request")),
+                Err(err) if err.kind() == std::io::ErrorKind::UnexpectedEof => break Ok(()),
+                Err(err) => return Err(err),
             }
         }
     }

@@ -29,14 +29,11 @@ enum Shape {
 
 #[tokio::main]
 async fn main() {
-    let mut database = Database::new(SchemaNode::Unit, Value::Unit);
+    let (server_stream, client_stream) = tokio::io::duplex(64);
 
     let client_future = async {
-        tokio::time::sleep(Duration::from_millis(10)).await;
-
-        let mut client = Client::<()>::connect("localhost:1234")
-            .await
-            .unwrap()
+        let mut client = Client::<(), _>::new(client_stream)
+            .await?
             .set(vec![
                 User {
                     name: "user 1".to_string(),
@@ -58,20 +55,24 @@ async fn main() {
                     }),
                 },
             ])
-            .await
-            .unwrap();
+            .await?;
 
-        dbg!(client.query(|users| users).await.unwrap());
-        dbg!(client
-            .query(|users| users
-                .clone()
-                .set(users.clone().filter(|user| { user.name.equal("user 1") }))
-                .chain(users))
-            .await
-            .unwrap());
+        dbg!(client.query(|users| users).await?);
+        dbg!(
+            client
+                .query(|users| users
+                    .clone()
+                    .set(users.clone().filter(|user| { user.name.equal("user 1") }))
+                    .chain(users))
+                .await?
+        );
+
+        Ok(()) as Result<(), std::io::Error>
     };
 
-    let (database_result, ()) = join!(database.listen("localhost:1234"), client_future);
+    let database = Database::new(SchemaNode::Unit, Value::Unit);
+    let (database_result, client_result) = join!(database.listen(server_stream), client_future);
 
     database_result.unwrap();
+    client_result.unwrap();
 }
