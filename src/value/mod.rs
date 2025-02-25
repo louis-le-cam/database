@@ -1,13 +1,14 @@
 use std::{
+    fmt::{self, Debug},
     io,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, TryLockError},
 };
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use crate::{io_error, SchemaNode};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Value {
     Product(Vec<Arc<Mutex<Value>>>),
     Sum(u32, Arc<Mutex<Value>>),
@@ -108,7 +109,7 @@ impl Value {
             (Self::Float64(lhs), Self::Float64(rhs)) => lhs == rhs,
             (Self::Boolean(lhs), Self::Boolean(rhs)) => lhs == rhs,
             (Self::Unit, Self::Unit) => true,
-            _ => panic!(),
+            a => panic!("{a:#?}"),
         }
     }
 
@@ -266,5 +267,125 @@ impl Value {
         }
 
         Ok(())
+    }
+}
+
+impl Debug for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        struct LockedDebug;
+        impl Debug for LockedDebug {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str("locked")
+            }
+        }
+
+        if f.alternate() && self.estimate_debug_width() < 80 {
+            return f.write_fmt(format_args!("{self:?}"));
+        }
+        match self {
+            Value::Product(values) => {
+                let mut tuple = f.debug_tuple("");
+
+                for value in values {
+                    match value.try_lock() {
+                        Ok(value) => tuple.field(&*value),
+                        Err(TryLockError::WouldBlock) => tuple.field(&LockedDebug),
+                        Err(TryLockError::Poisoned(poison_err)) => tuple.field(&poison_err),
+                    };
+                }
+
+                tuple.finish()
+            }
+            Value::Sum(discriminant, value) => {
+                f.write_fmt(format_args!("{discriminant} => "))?;
+                match value.try_lock() {
+                    Ok(value) => Debug::fmt(&*value, f),
+                    Err(TryLockError::WouldBlock) => f.write_str("locked"),
+                    Err(TryLockError::Poisoned(poison_err)) => Debug::fmt(&poison_err, f),
+                }
+            }
+            Value::List(values) => {
+                let mut list = f.debug_list();
+
+                for value in values {
+                    match value.try_lock() {
+                        Ok(value) => list.entry(&*value),
+                        Err(TryLockError::WouldBlock) => list.entry(&LockedDebug),
+                        Err(TryLockError::Poisoned(poison_err)) => list.entry(&poison_err),
+                    };
+                }
+
+                list.finish()
+            }
+            Value::String(value) => Debug::fmt(value, f),
+            Value::Boolean(value) => Debug::fmt(value, f),
+            Value::Unit => Debug::fmt(&(), f),
+            Value::Uint8(value) => Debug::fmt(value, f),
+            Value::Uint16(value) => Debug::fmt(value, f),
+            Value::Uint32(value) => Debug::fmt(value, f),
+            Value::Uint64(value) => Debug::fmt(value, f),
+            Value::Uint128(value) => Debug::fmt(value, f),
+            Value::Int8(value) => Debug::fmt(value, f),
+            Value::Int16(value) => Debug::fmt(value, f),
+            Value::Int32(value) => Debug::fmt(value, f),
+            Value::Int64(value) => Debug::fmt(value, f),
+            Value::Int128(value) => Debug::fmt(value, f),
+            Value::Float32(value) => Debug::fmt(value, f),
+            Value::Float64(value) => Debug::fmt(value, f),
+        }
+    }
+}
+
+impl Value {
+    fn estimate_debug_width(&self) -> usize {
+        match self {
+            Value::Product(values) => values.iter().fold(0, |len, value| {
+                len.saturating_add(match value.try_lock() {
+                    Ok(value) => value.estimate_debug_width(),
+                    Err(_) => 8,
+                })
+                .saturating_add(values.len().saturating_mul(2))
+            }),
+            Value::Sum(discriminant, value) => (discriminant.checked_ilog10().unwrap_or(0)
+                as usize)
+                .saturating_add(4)
+                .saturating_add(match value.try_lock() {
+                    Ok(value) => value.estimate_debug_width(),
+                    Err(_) => 8,
+                }),
+            Value::List(list) => list.iter().fold(0, |len, value| {
+                len.saturating_add(match value.try_lock() {
+                    Ok(value) => value.estimate_debug_width(),
+                    Err(_) => 8,
+                })
+                .saturating_add(list.len().saturating_mul(2))
+            }),
+            Value::String(string) => string.len() + 2,
+            Value::Boolean(true) => 4,
+            Value::Boolean(false) => 5,
+            Value::Unit => 2,
+            Value::Uint8(value) => value.checked_ilog10().unwrap_or(0) as usize,
+            Value::Uint16(value) => value.checked_ilog10().unwrap_or(0) as usize,
+            Value::Uint32(value) => value.checked_ilog10().unwrap_or(0) as usize,
+            Value::Uint64(value) => value.checked_ilog10().unwrap_or(0) as usize,
+            Value::Uint128(value) => value.checked_ilog10().unwrap_or(0) as usize,
+            Value::Int8(value) => {
+                value.abs().checked_ilog10().unwrap_or(0) as usize + value.is_negative() as usize
+            }
+            Value::Int16(value) => {
+                value.abs().checked_ilog10().unwrap_or(0) as usize + value.is_negative() as usize
+            }
+            Value::Int32(value) => {
+                value.abs().checked_ilog10().unwrap_or(0) as usize + value.is_negative() as usize
+            }
+            Value::Int64(value) => {
+                value.abs().checked_ilog10().unwrap_or(0) as usize + value.is_negative() as usize
+            }
+            Value::Int128(value) => {
+                value.abs().checked_ilog10().unwrap_or(0) as usize + value.is_negative() as usize
+            }
+            Value::Float32(value) => value.to_string().len(),
+            Value::Float64(value) => value.to_string().len(),
+        }
     }
 }

@@ -4,6 +4,7 @@ mod hash_map;
 mod hash_set;
 mod numeric;
 mod option;
+mod slot_map;
 mod string;
 mod tuple;
 mod unit;
@@ -21,6 +22,7 @@ pub use self::{
         Uint64Expression, Uint8Expression,
     },
     option::OptionExpression,
+    slot_map::SlotMapExpression,
     string::StringExpression,
     tuple::{
         TupleExpression1, TupleExpression10, TupleExpression11, TupleExpression12,

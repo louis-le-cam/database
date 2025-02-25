@@ -1,10 +1,20 @@
 use std::{
     collections::{HashMap, HashSet},
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::Duration,
 };
 
-use database::{Chain, Client, Database, Filter, Schema, SchemaNode, Set, StringEqual as _, Value};
+use database::{make_keys, Client, Database, Schema, SchemaNode, SlotMap, Value};
 use tokio::join;
+
+make_keys! {
+    #[derive(Debug)]
+    struct UserKey;
+}
+
+#[derive(Schema, Debug)]
+struct Db {
+    users: SlotMap<UserKey, User>,
+}
 
 #[derive(Schema, Debug)]
 struct User {
@@ -39,57 +49,67 @@ async fn main() {
     let client_future = async {
         let mut client = Client::<(), _>::new(client_stream)
             .await?
-            .set(vec![
-                User {
-                    name: "user 1".to_string(),
-                    location: Location(
-                        8294829452839424242.24982438293839242,
-                        -1151271151278511612757575.57121157611512611612575,
-                    ),
-                    duration: Duration::from_secs_f32(12.48),
-                    tags: HashSet::from(["tag 1".to_string(), "tag 2".to_string()]),
-                    shapes: HashMap::from([
-                        ("shape 1".to_string(), Shape::Circle(3.0)),
-                        (
-                            "shape 2".to_string(),
-                            Shape::Rectangle {
-                                width: 23.0,
-                                height: 2.8,
-                            },
+            .set(Db {
+                users: [
+                    User {
+                        name: "user 1".to_string(),
+                        location: Location(
+                            8294829452839424242.24982438293839242,
+                            -1151271151278511612757575.57121157611512611612575,
                         ),
-                    ]),
-                },
-                User {
-                    name: "user 2".to_string(),
-                    location: Location(
-                        -22722978511612757575.57121157611512611612575,
-                        44845451011844945108108108.81045448109448459449458108,
-                    ),
-                    duration: SystemTime::now().duration_since(UNIX_EPOCH).unwrap(),
-                    tags: HashSet::from(["tag 2".to_string(), "tag 3".to_string()]),
-                    shapes: HashMap::from([
-                        (
-                            "shape 2".to_string(),
-                            Shape::Rectangle {
-                                width: 23.0,
-                                height: 2.8,
-                            },
+                        duration: Duration::from_secs_f32(12.48),
+                        tags: HashSet::from(["tag 1".to_string(), "tag 2".to_string()]),
+                        shapes: HashMap::from([
+                            ("shape 1".to_string(), Shape::Circle(3.0)),
+                            (
+                                "shape 2".to_string(),
+                                Shape::Rectangle {
+                                    width: 23.0,
+                                    height: 2.8,
+                                },
+                            ),
+                        ]),
+                    },
+                    User {
+                        name: "user 2".to_string(),
+                        location: Location(
+                            -22722978511612757575.57121157611512611612575,
+                            44845451011844945108108108.81045448109448459449458108,
                         ),
-                        ("shape 3".to_string(), Shape::Circle(0.2)),
-                    ]),
-                },
-            ])
+                        // duration: SystemTime::now().duration_since(UNIX_EPOCH).unwrap(),
+                        duration: Duration::from_secs(3),
+                        tags: HashSet::from(["tag 2".to_string(), "tag 3".to_string()]),
+                        shapes: HashMap::from([
+                            (
+                                "shape 2".to_string(),
+                                Shape::Rectangle {
+                                    width: 23.0,
+                                    height: 2.8,
+                                },
+                            ),
+                            ("shape 3".to_string(), Shape::Circle(0.2)),
+                        ]),
+                    },
+                ]
+                .into_iter()
+                .collect(),
+            })
             .await?;
 
-        dbg!(client.query(|users| users).await?);
-        dbg!(
-            client
-                .query(|users| users
-                    .clone()
-                    .set(users.clone().filter(|user| { user.name.equal("user 1") }))
-                    .chain(users))
-                .await?
-        );
+        dbg!(client.query(|db| db.users).await?);
+        // dbg!(
+        //     client
+        //         .query(|db| db
+        //             .users
+        //             .clone()
+        //             .set(
+        //                 db.users
+        //                     .clone()
+        //                     .filter(|user| { user.name.equal("user 1") })
+        //             )
+        //             .chain(db.users))
+        //         .await?
+        // );
 
         Ok(()) as Result<(), std::io::Error>
     };
@@ -97,6 +117,6 @@ async fn main() {
     let database = Database::new(SchemaNode::Unit, Value::Unit);
     let (database_result, client_result) = join!(database.listen(server_stream), client_future);
 
-    database_result.unwrap();
     client_result.unwrap();
+    database_result.unwrap();
 }
