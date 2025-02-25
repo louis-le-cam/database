@@ -1,5 +1,6 @@
 mod bool;
 mod duration;
+mod hash_map;
 mod hash_set;
 mod numeric;
 mod option;

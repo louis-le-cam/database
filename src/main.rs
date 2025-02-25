@@ -1,5 +1,5 @@
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -10,9 +10,9 @@ use tokio::join;
 struct User {
     name: String,
     location: Location,
-    shape: Option<Shape>,
     duration: Duration,
     tags: HashSet<String>,
+    shapes: HashMap<String, Shape>,
 }
 
 #[derive(Schema, Debug)]
@@ -46,9 +46,18 @@ async fn main() {
                         8294829452839424242.24982438293839242,
                         -1151271151278511612757575.57121157611512611612575,
                     ),
-                    shape: None,
                     duration: Duration::from_secs_f32(12.48),
                     tags: HashSet::from(["tag 1".to_string(), "tag 2".to_string()]),
+                    shapes: HashMap::from([
+                        ("shape 1".to_string(), Shape::Circle(3.0)),
+                        (
+                            "shape 2".to_string(),
+                            Shape::Rectangle {
+                                width: 23.0,
+                                height: 2.8,
+                            },
+                        ),
+                    ]),
                 },
                 User {
                     name: "user 2".to_string(),
@@ -56,12 +65,18 @@ async fn main() {
                         -22722978511612757575.57121157611512611612575,
                         44845451011844945108108108.81045448109448459449458108,
                     ),
-                    shape: Some(Shape::Rectangle {
-                        width: 32.0,
-                        height: 16.8,
-                    }),
                     duration: SystemTime::now().duration_since(UNIX_EPOCH).unwrap(),
                     tags: HashSet::from(["tag 2".to_string(), "tag 3".to_string()]),
+                    shapes: HashMap::from([
+                        (
+                            "shape 2".to_string(),
+                            Shape::Rectangle {
+                                width: 23.0,
+                                height: 2.8,
+                            },
+                        ),
+                        ("shape 3".to_string(), Shape::Circle(0.2)),
+                    ]),
                 },
             ])
             .await?;

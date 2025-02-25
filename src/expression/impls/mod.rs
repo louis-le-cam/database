@@ -1,5 +1,6 @@
 mod bool;
 mod duration;
+mod hash_map;
 mod hash_set;
 mod numeric;
 mod option;
@@ -12,6 +13,7 @@ mod vec;
 pub use self::{
     bool::BoolExpression,
     duration::DurationExpression,
+    hash_map::HashMapExpression,
     hash_set::HashSetExpression,
     numeric::{
         Float32Expression, Float64Expression, Int128Expression, Int16Expression, Int32Expression,
