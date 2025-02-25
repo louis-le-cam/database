@@ -1,4 +1,7 @@
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::{
+    collections::HashSet,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 
 use database::{Chain, Client, Database, Filter, Schema, SchemaNode, Set, StringEqual as _, Value};
 use tokio::join;
@@ -9,6 +12,7 @@ struct User {
     location: Location,
     shape: Option<Shape>,
     duration: Duration,
+    tags: HashSet<String>,
 }
 
 #[derive(Schema, Debug)]
@@ -44,6 +48,7 @@ async fn main() {
                     ),
                     shape: None,
                     duration: Duration::from_secs_f32(12.48),
+                    tags: HashSet::from(["tag 1".to_string(), "tag 2".to_string()]),
                 },
                 User {
                     name: "user 2".to_string(),
@@ -56,6 +61,7 @@ async fn main() {
                         height: 16.8,
                     }),
                     duration: SystemTime::now().duration_since(UNIX_EPOCH).unwrap(),
+                    tags: HashSet::from(["tag 2".to_string(), "tag 3".to_string()]),
                 },
             ])
             .await?;
