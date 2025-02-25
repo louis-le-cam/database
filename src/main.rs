@@ -3,7 +3,7 @@ use std::{
     time::Duration,
 };
 
-use database::{make_keys, Client, Database, Schema, SchemaNode, SlotMap, Value};
+use database::{make_keys, Client, Database, Schema, SchemaNode, SlotMap, Value, VecGet as _};
 use tokio::join;
 
 make_keys! {
@@ -13,6 +13,7 @@ make_keys! {
 
 #[derive(Schema, Debug)]
 struct Db {
+    test: Vec<String>,
     users: SlotMap<UserKey, User>,
 }
 
@@ -50,6 +51,11 @@ async fn main() {
         let mut client = Client::<(), _>::new(client_stream)
             .await?
             .set(Db {
+                test: vec![
+                    "string 1".to_string(),
+                    "string 2".to_string(),
+                    "string 3".to_string(),
+                ],
                 users: [
                     User {
                         name: "user 1".to_string(),
@@ -96,7 +102,11 @@ async fn main() {
             })
             .await?;
 
-        dbg!(client.query(|db| db.users).await?);
+        dbg!(client.query(|db| db).await?);
+        dbg!(client.query(|db| db.test.get(0u32)).await?);
+        dbg!(client.query(|db| db.test.get(1u32)).await?);
+        dbg!(client.query(|db| db.test.get(2u32)).await?);
+        dbg!(client.query(|db| db.test.get(3u32)).await?);
         // dbg!(
         //     client
         //         .query(|db| db
@@ -117,6 +127,6 @@ async fn main() {
     let database = Database::new(SchemaNode::Unit, Value::Unit);
     let (database_result, client_result) = join!(database.listen(server_stream), client_future);
 
-    client_result.unwrap();
     database_result.unwrap();
+    client_result.unwrap();
 }

@@ -10,12 +10,6 @@ impl<T: Schema + Send + Sync> Clone for VecExpression<T> {
     }
 }
 
-impl<T: Schema + Send + Sync> VecExpression<T> {
-    pub fn get(&self, index: u32) -> T::Expression {
-        T::Expression::from_path(self.0.iter().copied().chain([index]).collect())
-    }
-}
-
 impl<T: Schema + Send + Sync> Expression for VecExpression<T> {
     type Target = Vec<T>;
 
