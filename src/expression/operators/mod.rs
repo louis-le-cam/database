@@ -5,6 +5,7 @@ mod filter;
 mod fuse;
 mod get;
 mod map_variant;
+mod option;
 mod set;
 
 pub use self::{
@@ -18,5 +19,6 @@ pub use self::{
     fuse::FuseExpression,
     get::{GetExpression, VecGet},
     map_variant::MapVariantExpression,
+    option::OptionOperators,
     set::{Set, SetExpression},
 };
