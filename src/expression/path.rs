@@ -5,6 +5,7 @@ use std::{
     marker::PhantomData,
     time::Duration,
 };
+
 use tokio::io::AsyncWriteExt;
 
 use crate::{expression_discriminant, io_error, Expression, Key, OptionMapped, Schema, SlotMap};
