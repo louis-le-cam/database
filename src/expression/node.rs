@@ -19,6 +19,7 @@ pub enum ExpressionNode {
     Fuse(Box<ExpressionNode>),
     Chain(Box<(ExpressionNode, ExpressionNode)>),
     Get(Box<(ExpressionNode, ExpressionNode)>),
+    Condition(Box<(ExpressionNode, ExpressionNode, ExpressionNode)>),
 }
 
 pub mod expression_discriminant {
@@ -32,6 +33,7 @@ pub mod expression_discriminant {
     pub const FUSE: u8 = 7;
     pub const CHAIN: u8 = 8;
     pub const GET: u8 = 9;
+    pub const CONDITION: u8 = 10;
 }
 
 impl ExpressionNode {
@@ -163,6 +165,15 @@ impl ExpressionNode {
                     None => Value::Sum(0, Arc::new(Mutex::new(Value::Unit))),
                 }))
             }
+            ExpressionNode::Condition(operands) => {
+                let (condition, if_branch, else_branch) = *operands;
+
+                match &*condition.evaluate(scopes.clone()).lock().unwrap() {
+                    Value::Boolean(true) => if_branch.evaluate(scopes),
+                    Value::Boolean(false) => else_branch.evaluate(scopes),
+                    _ => panic!(),
+                }
+            }
         }
     }
 
@@ -178,6 +189,7 @@ impl ExpressionNode {
             ExpressionNode::Fuse(_) => expression_discriminant::FUSE,
             ExpressionNode::Chain(_) => expression_discriminant::CHAIN,
             ExpressionNode::Get(_) => expression_discriminant::GET,
+            ExpressionNode::Condition(_) => expression_discriminant::CONDITION,
         }
     }
 
@@ -241,6 +253,11 @@ impl ExpressionNode {
                 Box::pin(Self::read(read)).await?,
             ))),
             expression_discriminant::GET => Self::Get(Box::new((
+                Box::pin(Self::read(read)).await?,
+                Box::pin(Self::read(read)).await?,
+            ))),
+            expression_discriminant::CONDITION => Self::Condition(Box::new((
+                Box::pin(Self::read(read)).await?,
                 Box::pin(Self::read(read)).await?,
                 Box::pin(Self::read(read)).await?,
             ))),
@@ -310,6 +327,11 @@ impl ExpressionNode {
             ExpressionNode::Get(operands) => {
                 Box::pin(operands.as_ref().0.write(write)).await?;
                 Box::pin(operands.as_ref().1.write(write)).await?;
+            }
+            ExpressionNode::Condition(operands) => {
+                Box::pin(operands.as_ref().0.write(write)).await?;
+                Box::pin(operands.as_ref().1.write(write)).await?;
+                Box::pin(operands.as_ref().2.write(write)).await?;
             }
         }
 

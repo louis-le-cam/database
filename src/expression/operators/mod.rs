@@ -8,9 +8,11 @@ mod map_variant;
 mod option;
 mod set;
 
+mod condition;
 pub use self::{
     and::{And, AndExpression},
     chain::{Chain, ChainExpression},
+    condition::{BoolOperators, ConditionExpression},
     equal::{
         EqualExpression, Int128Equal, Int16Equal, Int32Equal, Int64Equal, Int8Equal, StringEqual,
         Uint128Equal, Uint16Equal, Uint32Equal, Uint64Equal, Uint8Equal,

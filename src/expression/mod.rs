@@ -8,10 +8,11 @@ pub use self::{
     expression::Expression,
     node::{expression_discriminant, ExpressionNode},
     operators::{
-        And, AndExpression, Chain, ChainExpression, EqualExpression, Filter, FilterExpression,
-        FuseExpression, GetExpression, Int128Equal, Int16Equal, Int32Equal, Int64Equal, Int8Equal,
-        MapVariantExpression, OptionOperators, Set, SetExpression, StringEqual, Uint128Equal,
-        Uint16Equal, Uint32Equal, Uint64Equal, Uint8Equal, VecGet,
+        And, AndExpression, BoolOperators, Chain, ChainExpression, ConditionExpression,
+        EqualExpression, Filter, FilterExpression, FuseExpression, GetExpression, Int128Equal,
+        Int16Equal, Int32Equal, Int64Equal, Int8Equal, MapVariantExpression, OptionOperators, Set,
+        SetExpression, StringEqual, Uint128Equal, Uint16Equal, Uint32Equal, Uint64Equal,
+        Uint8Equal, VecGet,
     },
     path::{
         BoolExpression, DurationExpression, Float32Expression, Float64Expression, FromPath,

@@ -4,7 +4,8 @@ use std::{
 };
 
 use database::{
-    make_keys, Client, Database, OptionOperators, Schema, SchemaNode, SlotMap, Value, VecGet as _,
+    make_keys, BoolOperators, Client, ConditionExpression, Database, OptionOperators, Schema,
+    SchemaNode, SlotMap, StringEqual, Value, VecGet as _,
 };
 use tokio::join;
 
@@ -107,11 +108,15 @@ async fn main() {
         dbg!(client.query(|db| db).await?);
 
         for i in 0u32..4 {
-            dbg!(
-                client
-                    .query(|db| db.test.get(i).unwrap_or("default"))
-                    .await?
-            );
+            dbg!(client
+                .query(|db| db
+                    .test
+                    .get(i)
+                    .unwrap_or("default")
+                    .equal("string 2")
+                    .if_else(32, 89))
+                .await
+                .unwrap());
         }
 
         // dbg!(
