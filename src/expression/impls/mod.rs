@@ -21,7 +21,7 @@ pub use self::{
         Int64Expression, Int8Expression, Uint128Expression, Uint16Expression, Uint32Expression,
         Uint64Expression, Uint8Expression,
     },
-    option::OptionExpression,
+    option::{OptionExpression, OptionMappedExpression, OptionOperators},
     slot_map::SlotMapExpression,
     string::StringExpression,
     tuple::{

@@ -10,4 +10,7 @@ mod tuple;
 mod unit;
 mod vec;
 
-pub use slot_map::{DefaultKey, Key, SlotMap};
+pub use self::{
+    option::OptionMapped,
+    slot_map::{DefaultKey, Key, SlotMap},
+};

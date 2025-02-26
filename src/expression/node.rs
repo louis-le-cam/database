@@ -16,6 +16,7 @@ pub enum ExpressionNode {
     Filter(Box<(ExpressionNode, ExpressionNode)>),
     And(Box<(ExpressionNode, ExpressionNode)>),
     MapVariant(Box<(ExpressionNode, u32, ExpressionNode)>),
+    Fuse(Box<ExpressionNode>),
     Chain(Box<(ExpressionNode, ExpressionNode)>),
     Get(Box<(ExpressionNode, ExpressionNode)>),
 }
@@ -28,8 +29,9 @@ pub mod expression_discriminant {
     pub const FILTER: u8 = 4;
     pub const AND: u8 = 5;
     pub const MAP_VARIANT: u8 = 6;
-    pub const CHAIN: u8 = 7;
-    pub const GET: u8 = 8;
+    pub const FUSE: u8 = 7;
+    pub const CHAIN: u8 = 8;
+    pub const GET: u8 = 9;
 }
 
 impl ExpressionNode {
@@ -125,6 +127,14 @@ impl ExpressionNode {
                     lhs.clone()
                 }
             }
+            ExpressionNode::Fuse(operand) => {
+                let value = operand.evaluate(scopes);
+                let Value::Sum(_, inner) = &*value.lock().unwrap() else {
+                    panic!()
+                };
+
+                inner.clone()
+            }
             ExpressionNode::Chain(operands) => {
                 let (left_expression, right_expression) = *operands;
 
@@ -165,6 +175,7 @@ impl ExpressionNode {
             ExpressionNode::Filter(_) => expression_discriminant::FILTER,
             ExpressionNode::And(_) => expression_discriminant::AND,
             ExpressionNode::MapVariant(_) => expression_discriminant::MAP_VARIANT,
+            ExpressionNode::Fuse(_) => expression_discriminant::FUSE,
             ExpressionNode::Chain(_) => expression_discriminant::CHAIN,
             ExpressionNode::Get(_) => expression_discriminant::GET,
         }
@@ -222,6 +233,9 @@ impl ExpressionNode {
                 read.read_u32().await?,
                 Box::pin(Self::read(read)).await?,
             ))),
+            expression_discriminant::FUSE => {
+                Self::Fuse(Box::new(Box::pin(Self::read(read)).await?))
+            }
             expression_discriminant::CHAIN => Self::Chain(Box::new((
                 Box::pin(Self::read(read)).await?,
                 Box::pin(Self::read(read)).await?,
@@ -285,6 +299,9 @@ impl ExpressionNode {
                 Box::pin(operands.as_ref().0.write(write)).await?;
                 write.write_u32(operands.as_ref().1).await?;
                 Box::pin(operands.as_ref().2.write(write)).await?;
+            }
+            ExpressionNode::Fuse(operand) => {
+                Box::pin(operand.write(write)).await?;
             }
             ExpressionNode::Chain(operands) => {
                 Box::pin(operands.as_ref().0.write(write)).await?;

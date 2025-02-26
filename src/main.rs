@@ -3,7 +3,9 @@ use std::{
     time::Duration,
 };
 
-use database::{make_keys, Client, Database, Schema, SchemaNode, SlotMap, Value, VecGet as _};
+use database::{
+    make_keys, Client, Database, OptionOperators, Schema, SchemaNode, SlotMap, Value, VecGet as _,
+};
 use tokio::join;
 
 make_keys! {
@@ -103,10 +105,15 @@ async fn main() {
             .await?;
 
         dbg!(client.query(|db| db).await?);
-        dbg!(client.query(|db| db.test.get(0u32)).await?);
-        dbg!(client.query(|db| db.test.get(1u32)).await?);
-        dbg!(client.query(|db| db.test.get(2u32)).await?);
-        dbg!(client.query(|db| db.test.get(3u32)).await?);
+
+        for i in 0u32..4 {
+            dbg!(
+                client
+                    .query(|db| db.test.get(i).unwrap_or("default"))
+                    .await?
+            );
+        }
+
         // dbg!(
         //     client
         //         .query(|db| db

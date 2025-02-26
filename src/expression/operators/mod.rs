@@ -2,7 +2,9 @@ mod and;
 mod chain;
 mod equal;
 mod filter;
+mod fuse;
 mod get;
+mod map_variant;
 mod set;
 
 pub use self::{
@@ -13,6 +15,8 @@ pub use self::{
         Uint128Equal, Uint16Equal, Uint32Equal, Uint64Equal, Uint8Equal,
     },
     filter::{Filter, FilterExpression},
+    fuse::FuseExpression,
     get::{GetExpression, VecGet},
+    map_variant::MapVariantExpression,
     set::{Set, SetExpression},
 };
