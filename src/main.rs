@@ -106,7 +106,18 @@ async fn main() {
             .await?;
 
         dbg!(client.query(|db| db).await?);
-        dbg!(client.query(|db| (1, db.clone(), db)).await?);
+        dbg!(
+            client
+                .query(|db| (
+                    1,
+                    db.clone(),
+                    Db {
+                        test: Vec::new(),
+                        users: SlotMap::new()
+                    }
+                ))
+                .await?
+        );
 
         for i in 0u32..4 {
             dbg!(client

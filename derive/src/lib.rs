@@ -66,6 +66,21 @@ fn derive_struct_named(
             mod __internal {
                 use super::*;
 
+                impl ::database::Expression for super::#name {
+                    type Target = #name;
+
+                    fn write(
+                        self,
+                        write: &mut (impl ::database::__internal::tokio::io::AsyncWriteExt + ::std::marker::Unpin + ::std::marker::Send),
+                    ) -> impl ::std::future::Future<Output = ::std::io::Result<()>> {
+                        async move {
+                            write.write_u8(::database::expression_discriminant::VALUE).await?;
+                            <Self as ::database::Schema>::write_schema(write).await?;
+                            ::database::Schema::write_value(&self, write).await
+                        }
+                    }
+                }
+
                 #parent_vis struct Expression {
                     #(pub #field_names: <#field_types as ::database::Schema>::Expression,)*
                     __internal_path: Vec<u32>,
@@ -175,6 +190,21 @@ fn derive_struct_unnamed(
             mod __internal {
                 use super::*;
 
+                impl ::database::Expression for super::#name {
+                    type Target = #name;
+
+                    fn write(
+                        self,
+                        write: &mut (impl ::database::__internal::tokio::io::AsyncWriteExt + ::std::marker::Unpin + ::std::marker::Send),
+                    ) -> impl ::std::future::Future<Output = ::std::io::Result<()>> {
+                        async move {
+                            write.write_u8(::database::expression_discriminant::VALUE).await?;
+                            <Self as ::database::Schema>::write_schema(write).await?;
+                            ::database::Schema::write_value(&self, write).await
+                        }
+                    }
+                }
+
                  #parent_vis struct Expression(
                     #(pub <#field_types as ::database::Schema>::Expression,)*
                     Vec<u32>,
@@ -262,6 +292,21 @@ fn derive_struct_unit(name: Ident) -> proc_macro2::TokenStream {
     quote! {
         const _: () = {
             struct Expression(Vec<u32>);
+
+            impl ::database::Expression for #name {
+                type Target = #name;
+
+                fn write(
+                    self,
+                    write: &mut (impl ::database::__internal::tokio::io::AsyncWriteExt + ::std::marker::Unpin + ::std::marker::Send),
+                ) -> impl ::std::future::Future<Output = ::std::io::Result<()>> {
+                    async move {
+                        write.write_u8(::database::expression_discriminant::VALUE).await?;
+                        <Self as ::database::Schema>::write_schema(write).await?;
+                        ::database::Schema::write_value(&self, write).await
+                    }
+                }
+            }
 
             impl Clone for Expression {
                 fn clone(&self) -> Self {
@@ -418,6 +463,21 @@ fn derive_enum(name: Ident, data: DataEnum) -> proc_macro2::TokenStream {
 
     quote! {
         const _: () = {
+            impl ::database::Expression for #name {
+                type Target = #name;
+
+                fn write(
+                    self,
+                    write: &mut (impl ::database::__internal::tokio::io::AsyncWriteExt + ::std::marker::Unpin + ::std::marker::Send),
+                ) -> impl ::std::future::Future<Output = ::std::io::Result<()>> {
+                    async move {
+                        write.write_u8(::database::expression_discriminant::VALUE).await?;
+                        <Self as ::database::Schema>::write_schema(write).await?;
+                        ::database::Schema::write_value(&self, write).await
+                    }
+                }
+            }
+
             struct Expression(Vec<u32>);
 
             impl Clone for Expression {

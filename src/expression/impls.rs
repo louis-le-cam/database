@@ -23,7 +23,6 @@ macro_rules! impl_expr {
     )*};
 }
 
-// TODO: `Expression` should be implemented in #[derive(Schema)]
 impl_expr!(
     () bool String
     u8 u16 u32 u64 u128
