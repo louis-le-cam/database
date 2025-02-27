@@ -106,7 +106,7 @@ async fn main() {
             .await?;
 
         dbg!(client.query(|db| db).await?);
-        dbg!(client.query(|db| (1, db)).await?);
+        dbg!(client.query(|db| (1, db.clone(), db)).await?);
 
         for i in 0u32..4 {
             dbg!(client

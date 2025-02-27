@@ -66,9 +66,15 @@ fn derive_struct_named(
             mod __internal {
                 use super::*;
 
-                 #parent_vis struct Expression {
+                #parent_vis struct Expression {
                     #(pub #field_names: <#field_types as ::database::Schema>::Expression,)*
                     __internal_path: Vec<u32>,
+                }
+
+                impl Clone for Expression {
+                    fn clone(&self) -> Self {
+                        ::database::FromPath::from_path(self.__internal_path.clone())
+                    }
                 }
 
                 impl ::database::Expression for Expression {
@@ -174,6 +180,12 @@ fn derive_struct_unnamed(
                     Vec<u32>,
                 );
 
+                impl Clone for Expression {
+                    fn clone(&self) -> Self {
+                        ::database::FromPath::from_path(self.#path_index.clone())
+                    }
+                }
+
                 impl ::database::Expression for Expression {
                     type Target = super::#name;
 
@@ -250,6 +262,12 @@ fn derive_struct_unit(name: Ident) -> proc_macro2::TokenStream {
     quote! {
         const _: () = {
             struct Expression(Vec<u32>);
+
+            impl Clone for Expression {
+                fn clone(&self) -> Self {
+                    ::database::FromPath::from_path(self.0.clone())
+                }
+            }
 
             impl ::database::Expression for Expression {
                 type Target = #name;
@@ -401,6 +419,12 @@ fn derive_enum(name: Ident, data: DataEnum) -> proc_macro2::TokenStream {
     quote! {
         const _: () = {
             struct Expression(Vec<u32>);
+
+            impl Clone for Expression {
+                fn clone(&self) -> Self {
+                    ::database::FromPath::from_path(self.0.clone())
+                }
+            }
 
             impl ::database::Expression for Expression {
                 type Target = #name;
