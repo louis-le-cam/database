@@ -2,7 +2,9 @@ use std::{collections::HashMap, future::Future, hash::Hash, io};
 
 use tokio::io::AsyncWriteExt;
 
-use crate::{io_error, schema_discriminant, HashMapExpression, Schema};
+use crate::{
+    expression_discriminant, io_error, schema_discriminant, Expression, HashMapExpression, Schema,
+};
 
 impl<K: Schema + Send + Sync + Eq + Hash, V: Schema + Send + Sync> Schema for HashMap<K, V> {
     type Expression = HashMapExpression<K, V>;
@@ -70,6 +72,37 @@ impl<K: Schema + Send + Sync + Eq + Hash, V: Schema + Send + Sync> Schema for Ha
             }
 
             Ok(values)
+        }
+    }
+}
+
+// TODO: find a way to pass hashmap containing expressions in query
+impl<K: Schema + Send + Sync + Eq + Hash, V: Schema + Send + Sync> Expression for HashMap<K, V> {
+    type Target = HashMap<K, V>;
+
+    fn write(
+        self,
+        write: &mut (impl AsyncWriteExt + Unpin + Send),
+    ) -> impl Future<Output = io::Result<()>> {
+        async move {
+            write.write_u8(expression_discriminant::LIST).await?;
+
+            write
+                .write_u32(self.len().try_into().map_err(|_| {
+                    io_error!(
+                        OutOfMemory,
+                        "list expression length doesn't fit into a 32 bit unsigned integer",
+                    )
+                })?)
+                .await?;
+
+            for (key, value) in self {
+                write.write_u8(expression_discriminant::VALUE).await?;
+                <(K, V)>::write_schema(write).await?;
+                (key, value).write_value(write).await?;
+            }
+
+            Ok(())
         }
     }
 }

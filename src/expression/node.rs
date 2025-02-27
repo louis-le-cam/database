@@ -20,6 +20,9 @@ pub enum ExpressionNode {
     Chain(Box<(ExpressionNode, ExpressionNode)>),
     Get(Box<(ExpressionNode, ExpressionNode)>),
     Condition(Box<(ExpressionNode, ExpressionNode, ExpressionNode)>),
+    Product(Vec<ExpressionNode>),
+    Sum(Box<(u32, ExpressionNode)>),
+    List(Vec<ExpressionNode>),
 }
 
 pub mod expression_discriminant {
@@ -34,6 +37,9 @@ pub mod expression_discriminant {
     pub const CHAIN: u8 = 8;
     pub const GET: u8 = 9;
     pub const CONDITION: u8 = 10;
+    pub const PRODUCT: u8 = 11;
+    pub const SUM: u8 = 12;
+    pub const LIST: u8 = 13;
 }
 
 impl ExpressionNode {
@@ -174,6 +180,26 @@ impl ExpressionNode {
                     _ => panic!(),
                 }
             }
+            ExpressionNode::Product(fields) => Arc::new(Mutex::new(Value::Product(
+                fields
+                    .into_iter()
+                    .map(|field| field.evaluate(scopes.clone()))
+                    .collect(),
+            ))),
+            ExpressionNode::Sum(operands) => {
+                let (discriminant, expression) = *operands;
+
+                Arc::new(Mutex::new(Value::Sum(
+                    discriminant,
+                    expression.evaluate(scopes),
+                )))
+            }
+            ExpressionNode::List(elements) => Arc::new(Mutex::new(Value::List(
+                elements
+                    .into_iter()
+                    .map(|element| element.evaluate(scopes.clone()))
+                    .collect(),
+            ))),
         }
     }
 
@@ -190,6 +216,9 @@ impl ExpressionNode {
             ExpressionNode::Chain(_) => expression_discriminant::CHAIN,
             ExpressionNode::Get(_) => expression_discriminant::GET,
             ExpressionNode::Condition(_) => expression_discriminant::CONDITION,
+            ExpressionNode::Product(_) => expression_discriminant::PRODUCT,
+            ExpressionNode::Sum(_) => expression_discriminant::SUM,
+            ExpressionNode::List(_) => expression_discriminant::LIST,
         }
     }
 
@@ -261,6 +290,54 @@ impl ExpressionNode {
                 Box::pin(Self::read(read)).await?,
                 Box::pin(Self::read(read)).await?,
             ))),
+            expression_discriminant::PRODUCT => {
+                let length: usize = read.read_u32().await?.try_into().map_err(|_| {
+                    io_error!(
+                        OutOfMemory,
+                        "product expression length doesn't fit into a pointer sized unsigned integer",
+                    )
+                })?;
+
+                let mut fields = Vec::new();
+                fields.try_reserve(length).map_err(|_| {
+                    io_error!(
+                        OutOfMemory,
+                        "allocation of memory for product expression failed"
+                    )
+                })?;
+
+                for _ in 0..length {
+                    fields.push(Box::pin(Self::read(read)).await?);
+                }
+
+                Self::Product(fields)
+            }
+            expression_discriminant::SUM => Self::Sum(Box::new((
+                read.read_u32().await?,
+                Box::pin(Self::read(read)).await?,
+            ))),
+            expression_discriminant::LIST => {
+                let length: usize = read.read_u32().await?.try_into().map_err(|_| {
+                    io_error!(
+                        OutOfMemory,
+                        "list expression length doesn't fit into a pointer sized unsigned integer",
+                    )
+                })?;
+
+                let mut elements = Vec::new();
+                elements.try_reserve(length).map_err(|_| {
+                    io_error!(
+                        OutOfMemory,
+                        "allocation of memory for list expression failed"
+                    )
+                })?;
+
+                for _ in 0..length {
+                    elements.push(Box::pin(Self::read(read)).await?);
+                }
+
+                Self::Product(elements)
+            }
             _ => {
                 return Err(io_error!(
                     InvalidData,
@@ -332,6 +409,38 @@ impl ExpressionNode {
                 Box::pin(operands.as_ref().0.write(write)).await?;
                 Box::pin(operands.as_ref().1.write(write)).await?;
                 Box::pin(operands.as_ref().2.write(write)).await?;
+            }
+            ExpressionNode::Product(fields) => {
+                write
+                    .write_u32(fields.len().try_into().map_err(|_| {
+                        io_error!(
+                            OutOfMemory,
+                            "product expression length doesn't fit into a 32 bit unsigned integer",
+                        )
+                    })?)
+                    .await?;
+
+                for field in fields {
+                    Box::pin(field.write(write)).await?;
+                }
+            }
+            ExpressionNode::Sum(operands) => {
+                write.write_u32(operands.as_ref().0).await?;
+                Box::pin(operands.as_ref().1.write(write)).await?;
+            }
+            ExpressionNode::List(elements) => {
+                write
+                    .write_u32(elements.len().try_into().map_err(|_| {
+                        io_error!(
+                            OutOfMemory,
+                            "product expression length doesn't fit into a 32 bit unsigned integer",
+                        )
+                    })?)
+                    .await?;
+
+                for element in elements {
+                    Box::pin(element.write(write)).await?;
+                }
             }
         }
 

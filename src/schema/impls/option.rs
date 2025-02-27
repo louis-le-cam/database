@@ -2,7 +2,10 @@ use std::{future::Future, io};
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-use crate::{io_error, schema_discriminant, OptionExpression, OptionMappedExpression, Schema};
+use crate::{
+    expression_discriminant, io_error, schema_discriminant, Expression, OptionExpression,
+    OptionMappedExpression, Schema,
+};
 
 impl<S: Schema + Send + Sync> Schema for Option<S> {
     type Expression = OptionExpression<S>;
@@ -49,6 +52,31 @@ impl<S: Schema + Send + Sync> Schema for Option<S> {
                     "invalid discriminant in value for a sum value"
                 )),
             }
+        }
+    }
+}
+
+impl<T: Expression> Expression for Option<T>
+where
+    T::Target: Send + Sync,
+{
+    type Target = Option<T::Target>;
+
+    fn write(
+        self,
+        write: &mut (impl AsyncWriteExt + Unpin + Send),
+    ) -> impl Future<Output = io::Result<()>> {
+        async {
+            write.write_u8(expression_discriminant::SUM).await?;
+            match self {
+                None => write.write_u32(0).await?,
+                Some(expression) => {
+                    write.write_u32(1).await?;
+                    expression.write(write).await?;
+                }
+            }
+
+            Ok(())
         }
     }
 }
@@ -105,6 +133,35 @@ impl<Some: Schema + Send + Sync, None: Schema + Send + Sync> Schema for OptionMa
                     "invalid discriminant in value for a sum value"
                 )),
             }
+        }
+    }
+}
+
+impl<Some: Expression, None: Expression> Expression for OptionMapped<Some, None>
+where
+    Some::Target: Send + Sync,
+    None::Target: Send + Sync,
+{
+    type Target = OptionMapped<Some::Target, None::Target>;
+
+    fn write(
+        self,
+        write: &mut (impl AsyncWriteExt + Unpin + Send),
+    ) -> impl Future<Output = io::Result<()>> {
+        async {
+            write.write_u8(expression_discriminant::SUM).await?;
+            match self {
+                Self::None(expression) => {
+                    write.write_u32(0).await?;
+                    expression.write(write).await?;
+                }
+                Self::Some(expression) => {
+                    write.write_u32(1).await?;
+                    expression.write(write).await?;
+                }
+            }
+
+            Ok(())
         }
     }
 }

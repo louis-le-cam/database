@@ -3,10 +3,10 @@ use std::{future::Future, io};
 use tokio::io::AsyncWriteExt;
 
 use crate::{
-    schema_discriminant, Schema, TupleExpression1, TupleExpression10, TupleExpression11,
-    TupleExpression12, TupleExpression13, TupleExpression14, TupleExpression15, TupleExpression16,
-    TupleExpression2, TupleExpression3, TupleExpression4, TupleExpression5, TupleExpression6,
-    TupleExpression7, TupleExpression8, TupleExpression9,
+    expression_discriminant, io_error, schema_discriminant, Expression, Schema, TupleExpression1,
+    TupleExpression10, TupleExpression11, TupleExpression12, TupleExpression13, TupleExpression14,
+    TupleExpression15, TupleExpression16, TupleExpression2, TupleExpression3, TupleExpression4,
+    TupleExpression5, TupleExpression6, TupleExpression7, TupleExpression8, TupleExpression9,
 };
 
 macro_rules! generate {
@@ -52,6 +52,33 @@ macro_rules! generate {
                 ) -> impl Future<Output = io::Result<Self>> + Send {
                     async {
                         Ok(($($field::read_value(read).await?,)*))
+                    }
+                }
+            }
+
+            impl<$($field: Expression,)*> Expression for ($($field,)*) where $($field::Target: Send + Sync,)* {
+                type Target = ($($field::Target,)*);
+
+                fn write(
+                    self,
+                    write: &mut (impl AsyncWriteExt + Unpin + Send),
+                ) -> impl Future<Output = io::Result<()>> {
+                    async move {
+                        write.write_u8(expression_discriminant::PRODUCT).await?;
+
+                        #[allow(non_snake_case)]
+                        {
+                            $(let $field = ();)*
+                            write.write_u32(0 $( + (1, $field).0)*).await?;
+                        }
+
+                        #[allow(non_snake_case)]
+                        {
+                            let ($($field,)*) = self;
+                            $($field.write(write).await?;)*
+                        }
+
+                        Ok(())
                     }
                 }
             }

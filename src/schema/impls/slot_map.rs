@@ -2,7 +2,7 @@ use std::{future::Future, io, marker::PhantomData, num::NonZeroU32};
 
 use tokio::io::AsyncWriteExt;
 
-use crate::{io_error, Schema, SlotMapExpression};
+use crate::{expression_discriminant, io_error, Expression, Schema, SlotMapExpression};
 
 pub trait Key {
     fn new(index: u32, generation: NonZeroU32) -> Self;
@@ -120,6 +120,40 @@ impl<K: Key + Send + Sync, T: Schema + Send + Sync> Schema for SlotMap<K, T> {
             }
 
             Ok(SlotMap(values, PhantomData))
+        }
+    }
+}
+
+// TODO: find a way to pass hashmap containing expressions in query
+impl<K: Key + Send + Sync, T: Schema + Send + Sync> Expression for SlotMap<K, T> {
+    type Target = SlotMap<K, T>;
+
+    fn write(
+        self,
+        write: &mut (impl AsyncWriteExt + Unpin + Send),
+    ) -> impl Future<Output = io::Result<()>> {
+        async move {
+            write.write_u8(expression_discriminant::LIST).await?;
+
+            write
+                .write_u32(self.0.len().try_into().map_err(|_| {
+                    io_error!(
+                        OutOfMemory,
+                        "list expression length doesn't fit into a 32 bit unsigned integer",
+                    )
+                })?)
+                .await?;
+
+            for (generation, value) in self.0 {
+                write.write_u8(expression_discriminant::VALUE).await?;
+
+                <(u32, Option<T>)>::write_schema(write).await?;
+
+                generation.get().write_value(write).await?;
+                value.write_value(write).await?;
+            }
+
+            Ok(())
         }
     }
 }

@@ -2,7 +2,9 @@ use std::{collections::HashSet, future::Future, hash::Hash, io};
 
 use tokio::io::AsyncWriteExt;
 
-use crate::{io_error, schema_discriminant, HashSetExpression, Schema};
+use crate::{
+    expression_discriminant, io_error, schema_discriminant, Expression, HashSetExpression, Schema,
+};
 
 impl<T: Schema + Send + Sync + Eq + Hash> Schema for HashSet<T> {
     type Expression = HashSetExpression<T>;
@@ -63,6 +65,37 @@ impl<T: Schema + Send + Sync + Eq + Hash> Schema for HashSet<T> {
             }
 
             Ok(values)
+        }
+    }
+}
+
+// TODO: find a way to pass hashset containing expressions in query
+impl<T: Schema + Send + Sync + Eq + Hash> Expression for HashSet<T> {
+    type Target = HashSet<T>;
+
+    fn write(
+        self,
+        write: &mut (impl AsyncWriteExt + Unpin + Send),
+    ) -> impl Future<Output = io::Result<()>> {
+        async move {
+            write.write_u8(expression_discriminant::LIST).await?;
+
+            write
+                .write_u32(self.len().try_into().map_err(|_| {
+                    io_error!(
+                        OutOfMemory,
+                        "list expression length doesn't fit into a 32 bit unsigned integer",
+                    )
+                })?)
+                .await?;
+
+            for value in self {
+                write.write_u8(expression_discriminant::VALUE).await?;
+                T::write_schema(write).await?;
+                value.write_value(write).await?;
+            }
+
+            Ok(())
         }
     }
 }
