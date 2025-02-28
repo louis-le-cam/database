@@ -2,10 +2,10 @@ use std::{future::Future, io};
 
 use tokio::io::AsyncWriteExt;
 
-use crate::{schema_discriminant, Schema, UnitExpression};
+use crate::{schema_discriminant, PathExpression, Schema};
 
 impl Schema for () {
-    type Expression = UnitExpression;
+    type Expression = PathExpression<()>;
 
     fn write_schema(
         write: &mut (impl AsyncWriteExt + Unpin + Send),

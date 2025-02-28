@@ -3,10 +3,6 @@ use std::{
     hash::Hash,
     io,
     marker::PhantomData,
-    num::{
-        NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroU128, NonZeroU16,
-        NonZeroU32, NonZeroU64, NonZeroU8,
-    },
     time::Duration,
 };
 
@@ -18,33 +14,44 @@ pub trait FromPath {
     fn from_path(path: Vec<u32>) -> Self;
 }
 
-pub struct UnitExpression(Vec<u32>);
-pub struct BoolExpression(Vec<u32>);
-pub struct StringExpression(Vec<u32>);
+pub struct PathExpression<T: Schema>(Vec<u32>, PhantomData<T>);
 
-pub struct Uint8Expression(Vec<u32>);
-pub struct Uint16Expression(Vec<u32>);
-pub struct Uint32Expression(Vec<u32>);
-pub struct Uint64Expression(Vec<u32>);
-pub struct Uint128Expression(Vec<u32>);
-pub struct Int8Expression(Vec<u32>);
-pub struct Int16Expression(Vec<u32>);
-pub struct Int32Expression(Vec<u32>);
-pub struct Int64Expression(Vec<u32>);
-pub struct Int128Expression(Vec<u32>);
-pub struct Float32Expression(Vec<u32>);
-pub struct Float64Expression(Vec<u32>);
+impl<T: Schema> Clone for PathExpression<T> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone(), PhantomData)
+    }
+}
 
-pub struct NonZeroUint8Expression(Vec<u32>);
-pub struct NonZeroUint16Expression(Vec<u32>);
-pub struct NonZeroUint32Expression(Vec<u32>);
-pub struct NonZeroUint64Expression(Vec<u32>);
-pub struct NonZeroUint128Expression(Vec<u32>);
-pub struct NonZeroInt8Expression(Vec<u32>);
-pub struct NonZeroInt16Expression(Vec<u32>);
-pub struct NonZeroInt32Expression(Vec<u32>);
-pub struct NonZeroInt64Expression(Vec<u32>);
-pub struct NonZeroInt128Expression(Vec<u32>);
+impl<T: Schema> FromPath for PathExpression<T> {
+    fn from_path(path: Vec<u32>) -> Self {
+        Self(path, PhantomData)
+    }
+}
+
+impl<T: Schema> Expression for PathExpression<T> {
+    type Target = T;
+
+    async fn write(
+        self,
+        write: &mut (impl ::tokio::io::AsyncWriteExt + ::std::marker::Unpin),
+    ) -> ::std::io::Result<()> {
+        write.write_u8(expression_discriminant::PATH).await?;
+        write
+            .write_u32(self.0.len().try_into().map_err(|_| {
+                io_error!(
+                    OutOfMemory,
+                    "path expression length doesn't fit into a 32 bit unsigned integer",
+                )
+            })?)
+            .await?;
+
+        for segment in &self.0 {
+            write.write_u32(*segment).await?;
+        }
+
+        Ok(())
+    }
+}
 
 pub struct OptionExpression<S: Schema + Send + Sync>(Vec<u32>, PhantomData<S>);
 pub struct OptionMappedExpression<Some, None>(Vec<u32>, PhantomData<(Some, None)>);
@@ -106,34 +113,6 @@ macro_rules! impl_path_expr {
 }
 
 impl_path_expr!(
-    [] UnitExpression, (), ();
-    [] BoolExpression, bool, ();
-    [] StringExpression, String, ();
-
-    [] Uint8Expression, u8,();
-    [] Uint16Expression, u16,();
-    [] Uint32Expression, u32,();
-    [] Uint64Expression, u64,();
-    [] Uint128Expression, u128,();
-    [] Int8Expression, i8,();
-    [] Int16Expression, i16,();
-    [] Int32Expression, i32,();
-    [] Int64Expression, i64,();
-    [] Int128Expression, i128,();
-    [] Float32Expression, f32,();
-    [] Float64Expression, f64,();
-
-    [] NonZeroUint8Expression, NonZeroU8,();
-    [] NonZeroUint16Expression, NonZeroU16,();
-    [] NonZeroUint32Expression, NonZeroU32,();
-    [] NonZeroUint64Expression, NonZeroU64,();
-    [] NonZeroUint128Expression, NonZeroU128,();
-    [] NonZeroInt8Expression, NonZeroI8,();
-    [] NonZeroInt16Expression, NonZeroI16,();
-    [] NonZeroInt32Expression, NonZeroI32,();
-    [] NonZeroInt64Expression, NonZeroI64,();
-    [] NonZeroInt128Expression, NonZeroI128,();
-
     [S: Schema + Send + Sync] OptionExpression<S>, Option<S>, (PhantomData);
     [Some: Schema + Send + Sync, None: Schema + Send + Sync] OptionMappedExpression<Some, None>, OptionMapped<Some, None>, (PhantomData);
     [T: Schema + Send + Sync] VecExpression<T>, Vec<T>, (::core::marker::PhantomData);
