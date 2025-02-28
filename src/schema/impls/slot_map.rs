@@ -56,6 +56,24 @@ impl<K: Key, T> SlotMap<K, T> {
     pub fn new() -> Self {
         Self(Vec::new(), PhantomData)
     }
+
+    pub fn get(&self, key: K) -> Option<&T> {
+        self.0
+            .get(usize::try_from(key.index()).ok()?)
+            .and_then(|(generation, user)| {
+                (*generation == key.generation()).then_some(user.as_ref())
+            })
+            .flatten()
+    }
+
+    pub fn get_mut(&mut self, key: K) -> Option<&mut T> {
+        self.0
+            .get_mut(usize::try_from(key.index()).ok()?)
+            .and_then(|(generation, user)| {
+                (*generation == key.generation()).then_some(user.as_mut())
+            })
+            .flatten()
+    }
 }
 
 impl<K: Key, T> FromIterator<T> for SlotMap<K, T> {
