@@ -363,7 +363,7 @@ impl ExpressionNode {
                     elements.push(Box::pin(Self::read(read)).await?);
                 }
 
-                Self::Product(elements)
+                Self::List(elements)
             }
             _ => {
                 return Err(io_error!(
