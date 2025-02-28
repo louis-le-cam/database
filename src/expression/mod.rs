@@ -10,9 +10,9 @@ pub use self::{
     operators::{
         And, AndExpression, BoolOperators, Chain, ChainExpression, ConditionExpression,
         EqualExpression, Filter, FilterExpression, FuseExpression, GetExpression, Int128Equal,
-        Int16Equal, Int32Equal, Int64Equal, Int8Equal, MapVariantExpression, OptionOperators, Set,
-        SetExpression, StringEqual, Uint128Equal, Uint16Equal, Uint32Equal, Uint64Equal,
-        Uint8Equal, VecGet,
+        Int16Equal, Int32Equal, Int64Equal, Int8Equal, MapVariantExpression, MapVec,
+        OptionOperators, Set, SetExpression, StringEqual, Uint128Equal, Uint16Equal, Uint32Equal,
+        Uint64Equal, Uint8Equal, VecGet,
     },
     path::{
         BoolExpression, DurationExpression, Float32Expression, Float64Expression, FromPath,

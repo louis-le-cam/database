@@ -14,7 +14,7 @@ pub use crate::{
         ExpressionNode, Filter, FilterExpression, Float32Expression, Float64Expression, FromPath,
         FuseExpression, GetExpression, HashMapExpression, HashSetExpression, Int128Equal,
         Int128Expression, Int16Equal, Int16Expression, Int32Equal, Int32Expression, Int64Equal,
-        Int64Expression, Int8Equal, Int8Expression, MapVariantExpression, OptionExpression,
+        Int64Expression, Int8Equal, Int8Expression, MapVariantExpression, MapVec, OptionExpression,
         OptionMappedExpression, OptionOperators, Set, SetExpression, SlotMapExpression,
         StringEqual, StringExpression, TupleExpression1, TupleExpression10, TupleExpression11,
         TupleExpression12, TupleExpression13, TupleExpression14, TupleExpression15,

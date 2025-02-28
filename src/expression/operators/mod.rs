@@ -9,6 +9,7 @@ mod option;
 mod set;
 
 mod condition;
+mod map;
 pub use self::{
     and::{And, AndExpression},
     chain::{Chain, ChainExpression},
@@ -20,6 +21,7 @@ pub use self::{
     filter::{Filter, FilterExpression},
     fuse::FuseExpression,
     get::{GetExpression, VecGet},
+    map::MapVec,
     map_variant::MapVariantExpression,
     option::OptionOperators,
     set::{Set, SetExpression},

@@ -14,6 +14,7 @@ pub enum ExpressionNode {
     Set(Box<(ExpressionNode, ExpressionNode)>),
     Equal(Box<(ExpressionNode, ExpressionNode)>),
     Filter(Box<(ExpressionNode, ExpressionNode)>),
+    Map(Box<(ExpressionNode, ExpressionNode)>),
     And(Box<(ExpressionNode, ExpressionNode)>),
     MapVariant(Box<(ExpressionNode, u32, ExpressionNode)>),
     Fuse(Box<ExpressionNode>),
@@ -31,15 +32,16 @@ pub mod expression_discriminant {
     pub const SET: u8 = 2;
     pub const EQUAL: u8 = 3;
     pub const FILTER: u8 = 4;
-    pub const AND: u8 = 5;
-    pub const MAP_VARIANT: u8 = 6;
-    pub const FUSE: u8 = 7;
-    pub const CHAIN: u8 = 8;
-    pub const GET: u8 = 9;
-    pub const CONDITION: u8 = 10;
-    pub const PRODUCT: u8 = 11;
-    pub const SUM: u8 = 12;
-    pub const LIST: u8 = 13;
+    pub const MAP: u8 = 5;
+    pub const AND: u8 = 6;
+    pub const MAP_VARIANT: u8 = 7;
+    pub const FUSE: u8 = 8;
+    pub const CHAIN: u8 = 9;
+    pub const GET: u8 = 10;
+    pub const CONDITION: u8 = 11;
+    pub const PRODUCT: u8 = 12;
+    pub const SUM: u8 = 13;
+    pub const LIST: u8 = 14;
 }
 
 impl ExpressionNode {
@@ -98,6 +100,26 @@ impl ExpressionNode {
                             }
                         })
                         .cloned()
+                        .collect(),
+                )))
+            }
+            ExpressionNode::Map(operands) => {
+                let (left_expression, right_expression) = *operands;
+
+                let left_value = left_expression.evaluate(scopes.clone());
+
+                let Value::List(values) = &*left_value.lock().unwrap() else {
+                    panic!()
+                };
+
+                Arc::new(Mutex::new(Value::List(
+                    values
+                        .iter()
+                        .map(|value| {
+                            right_expression
+                                .clone()
+                                .evaluate(scopes.iter().cloned().chain([value.clone()]).collect())
+                        })
                         .collect(),
                 )))
             }
@@ -210,6 +232,7 @@ impl ExpressionNode {
             ExpressionNode::Set(_) => expression_discriminant::SET,
             ExpressionNode::Equal(_) => expression_discriminant::EQUAL,
             ExpressionNode::Filter(_) => expression_discriminant::FILTER,
+            ExpressionNode::Map(_) => expression_discriminant::MAP,
             ExpressionNode::And(_) => expression_discriminant::AND,
             ExpressionNode::MapVariant(_) => expression_discriminant::MAP_VARIANT,
             ExpressionNode::Fuse(_) => expression_discriminant::FUSE,
@@ -262,6 +285,10 @@ impl ExpressionNode {
                 Box::pin(Self::read(read)).await?,
             ))),
             expression_discriminant::FILTER => Self::Filter(Box::new((
+                Box::pin(Self::read(read)).await?,
+                Box::pin(Self::read(read)).await?,
+            ))),
+            expression_discriminant::MAP => Self::Map(Box::new((
                 Box::pin(Self::read(read)).await?,
                 Box::pin(Self::read(read)).await?,
             ))),
@@ -382,6 +409,10 @@ impl ExpressionNode {
                 Box::pin(operands.as_ref().1.write(write)).await?;
             }
             ExpressionNode::Filter(operands) => {
+                Box::pin(operands.as_ref().0.write(write)).await?;
+                Box::pin(operands.as_ref().1.write(write)).await?;
+            }
+            ExpressionNode::Map(operands) => {
                 Box::pin(operands.as_ref().0.write(write)).await?;
                 Box::pin(operands.as_ref().1.write(write)).await?;
             }

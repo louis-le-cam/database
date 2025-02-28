@@ -5,8 +5,8 @@ use std::{
 };
 
 use database::{
-    make_keys, BoolOperators, Client, Database, OptionOperators, Schema, SchemaNode, SlotMap,
-    StringEqual, Value, VecGet as _,
+    make_keys, BoolOperators, Client, Database, MapVec, OptionOperators, Schema, SchemaNode,
+    SlotMap, StringEqual, Value, VecGet as _,
 };
 use tokio::join;
 
@@ -120,6 +120,12 @@ async fn main() {
                         users: SlotMap::new()
                     }
                 ))
+                .await?
+        );
+
+        dbg!(
+            client
+                .query(|db| db.test.map(|value| (1, value, 2)))
                 .await?
         );
 
