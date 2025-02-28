@@ -3,6 +3,10 @@ use std::{
     hash::Hash,
     io,
     marker::PhantomData,
+    num::{
+        NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroU128, NonZeroU16,
+        NonZeroU32, NonZeroU64, NonZeroU8,
+    },
     time::Duration,
 };
 
@@ -30,6 +34,17 @@ pub struct Int64Expression(Vec<u32>);
 pub struct Int128Expression(Vec<u32>);
 pub struct Float32Expression(Vec<u32>);
 pub struct Float64Expression(Vec<u32>);
+
+pub struct NonZeroUint8Expression(Vec<u32>);
+pub struct NonZeroUint16Expression(Vec<u32>);
+pub struct NonZeroUint32Expression(Vec<u32>);
+pub struct NonZeroUint64Expression(Vec<u32>);
+pub struct NonZeroUint128Expression(Vec<u32>);
+pub struct NonZeroInt8Expression(Vec<u32>);
+pub struct NonZeroInt16Expression(Vec<u32>);
+pub struct NonZeroInt32Expression(Vec<u32>);
+pub struct NonZeroInt64Expression(Vec<u32>);
+pub struct NonZeroInt128Expression(Vec<u32>);
 
 pub struct OptionExpression<S: Schema + Send + Sync>(Vec<u32>, PhantomData<S>);
 pub struct OptionMappedExpression<Some, None>(Vec<u32>, PhantomData<(Some, None)>);
@@ -107,6 +122,17 @@ impl_path_expr!(
     [] Int128Expression, i128,();
     [] Float32Expression, f32,();
     [] Float64Expression, f64,();
+
+    [] NonZeroUint8Expression, NonZeroU8,();
+    [] NonZeroUint16Expression, NonZeroU16,();
+    [] NonZeroUint32Expression, NonZeroU32,();
+    [] NonZeroUint64Expression, NonZeroU64,();
+    [] NonZeroUint128Expression, NonZeroU128,();
+    [] NonZeroInt8Expression, NonZeroI8,();
+    [] NonZeroInt16Expression, NonZeroI16,();
+    [] NonZeroInt32Expression, NonZeroI32,();
+    [] NonZeroInt64Expression, NonZeroI64,();
+    [] NonZeroInt128Expression, NonZeroI128,();
 
     [S: Schema + Send + Sync] OptionExpression<S>, Option<S>, (PhantomData);
     [Some: Schema + Send + Sync, None: Schema + Send + Sync] OptionMappedExpression<Some, None>, OptionMapped<Some, None>, (PhantomData);

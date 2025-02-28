@@ -1,5 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
+    num::NonZeroU32,
     time::Duration,
 };
 
@@ -17,6 +18,7 @@ make_keys! {
 #[derive(Schema, Debug)]
 struct Db {
     test: Vec<String>,
+    non_zero: NonZeroU32,
     users: SlotMap<UserKey, User>,
 }
 
@@ -59,6 +61,7 @@ async fn main() {
                     "string 2".to_string(),
                     "string 3".to_string(),
                 ],
+                non_zero: NonZeroU32::new(3).unwrap(),
                 users: [
                     User {
                         name: "user 1".to_string(),
@@ -113,6 +116,7 @@ async fn main() {
                     db.clone(),
                     Db {
                         test: Vec::new(),
+                        non_zero: NonZeroU32::new(8).unwrap(),
                         users: SlotMap::new()
                     }
                 ))
