@@ -3,11 +3,11 @@ use std::{collections::HashSet, future::Future, hash::Hash, io};
 use tokio::io::AsyncWriteExt;
 
 use crate::{
-    expression_discriminant, io_error, schema_discriminant, Expression, HashSetExpression, Schema,
+    expression_discriminant, io_error, schema_discriminant, Expression, PathExpression, Schema,
 };
 
 impl<T: Schema + Send + Sync + Eq + Hash> Schema for HashSet<T> {
-    type Expression = HashSetExpression<T>;
+    type Expression = PathExpression<HashSet<T>>;
 
     fn write_schema(
         write: &mut (impl AsyncWriteExt + Unpin + Send),

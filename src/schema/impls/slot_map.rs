@@ -8,7 +8,7 @@ use std::{
 
 use tokio::io::AsyncWriteExt;
 
-use crate::{expression_discriminant, io_error, Expression, Schema, SlotMapExpression};
+use crate::{expression_discriminant, io_error, Expression, PathExpression, Schema};
 
 pub trait Key {
     fn new(index: u32, generation: NonZeroU32) -> Self;
@@ -133,7 +133,7 @@ impl<K: Key, T> IntoIterator for SlotMap<K, T> {
 }
 
 impl<K: Key + Send + Sync, T: Schema + Send + Sync> Schema for SlotMap<K, T> {
-    type Expression = SlotMapExpression<K, T>;
+    type Expression = PathExpression<SlotMap<K, T>>;
 
     fn write_schema(
         write: &mut (impl AsyncWriteExt + Unpin + Send),

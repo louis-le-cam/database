@@ -3,11 +3,11 @@ use std::{future::Future, io};
 use tokio::io::AsyncWriteExt;
 
 use crate::{
-    expression_discriminant, io_error, schema_discriminant, Expression, Schema, VecExpression,
+    expression_discriminant, io_error, schema_discriminant, Expression, PathExpression, Schema,
 };
 
 impl<T: Schema + Send + Sync> Schema for Vec<T> {
-    type Expression = VecExpression<T>;
+    type Expression = PathExpression<Vec<T>>;
 
     fn write_schema(
         write: &mut (impl AsyncWriteExt + Unpin + Send),

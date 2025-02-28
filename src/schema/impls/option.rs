@@ -3,12 +3,11 @@ use std::{future::Future, io};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use crate::{
-    expression_discriminant, io_error, schema_discriminant, Expression, OptionExpression,
-    OptionMappedExpression, Schema,
+    expression_discriminant, io_error, schema_discriminant, Expression, PathExpression, Schema,
 };
 
 impl<S: Schema + Send + Sync> Schema for Option<S> {
-    type Expression = OptionExpression<S>;
+    type Expression = PathExpression<Option<S>>;
 
     fn write_schema(
         write: &mut (impl AsyncWriteExt + Unpin + Send),
@@ -87,7 +86,7 @@ pub enum OptionMapped<Some, None> {
 }
 
 impl<Some: Schema + Send + Sync, None: Schema + Send + Sync> Schema for OptionMapped<Some, None> {
-    type Expression = OptionMappedExpression<Some, None>;
+    type Expression = PathExpression<OptionMapped<Some, None>>;
 
     fn write_schema(
         write: &mut (impl AsyncWriteExt + Unpin + Send),

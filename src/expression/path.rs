@@ -1,14 +1,8 @@
-use std::{
-    collections::{HashMap, HashSet},
-    hash::Hash,
-    io,
-    marker::PhantomData,
-    time::Duration,
-};
+use std::{io, marker::PhantomData};
 
 use tokio::io::AsyncWriteExt;
 
-use crate::{expression_discriminant, io_error, Expression, Key, OptionMapped, Schema, SlotMap};
+use crate::{expression_discriminant, io_error, Expression, Schema};
 
 pub trait FromPath {
     fn from_path(path: Vec<u32>) -> Self;
@@ -52,75 +46,6 @@ impl<T: Schema> Expression for PathExpression<T> {
         Ok(())
     }
 }
-
-pub struct OptionExpression<S: Schema + Send + Sync>(Vec<u32>, PhantomData<S>);
-pub struct OptionMappedExpression<Some, None>(Vec<u32>, PhantomData<(Some, None)>);
-pub struct DurationExpression(Vec<u32>);
-pub struct VecExpression<T: Schema + Send + Sync>(Vec<u32>, PhantomData<T>);
-pub struct HashMapExpression<K: Schema + Send + Sync + Eq + Hash, V: Schema + Send + Sync>(
-    Vec<u32>,
-    PhantomData<(K, V)>,
-);
-pub struct HashSetExpression<T: Schema + Send + Sync + Eq + Hash>(Vec<u32>, PhantomData<T>);
-pub struct SlotMapExpression<K: Key + Send + Sync, T: Schema + Send + Sync>(
-    Vec<u32>,
-    PhantomData<(K, T)>,
-);
-
-macro_rules! impl_path_expr {
-    ($([$($gen_decl:tt)*] $type:ty, $target:ty, ($($extra_fields:tt)*);)+) => {
-        $(
-            impl<$($gen_decl)*> Clone for $type {
-                fn clone(&self) -> Self {
-                    Self(self.0.clone(), $($extra_fields)*)
-                }
-            }
-
-            impl<$($gen_decl)*> $crate::FromPath for $type {
-                fn from_path(path: ::std::vec::Vec<u32>) -> Self {
-                    Self(path, $($extra_fields)*)
-                }
-            }
-
-            impl<$($gen_decl)*> $crate::Expression for $type {
-                type Target = $target;
-
-                async fn write(
-                    self,
-                    write: &mut (impl ::tokio::io::AsyncWriteExt + ::std::marker::Unpin),
-                ) -> ::std::io::Result<()> {
-                    write
-                        .write_u8($crate::expression_discriminant::PATH)
-                        .await?;
-                    write
-                        .write_u32(self.0.len().try_into().map_err(|_| {
-                            $crate::io_error!(
-                                OutOfMemory,
-                                "path expression length doesn't fit into a 32 bit unsigned integer",
-                            )
-                        })?)
-                        .await?;
-
-                    for segment in &self.0 {
-                        write.write_u32(*segment).await?;
-                    }
-
-                    Ok(())
-                }
-            }
-        )+
-    };
-}
-
-impl_path_expr!(
-    [S: Schema + Send + Sync] OptionExpression<S>, Option<S>, (PhantomData);
-    [Some: Schema + Send + Sync, None: Schema + Send + Sync] OptionMappedExpression<Some, None>, OptionMapped<Some, None>, (PhantomData);
-    [T: Schema + Send + Sync] VecExpression<T>, Vec<T>, (::core::marker::PhantomData);
-    [] DurationExpression, Duration, ();
-    [K: Schema + Send + Sync + Eq + Hash, V: Schema + Send + Sync] HashMapExpression<K, V>, HashMap<K, V>, (PhantomData);
-    [T: Schema + Send + Sync + Eq + Hash] HashSetExpression<T>, HashSet<T>, (PhantomData);
-    [K: Key + Send + Sync, T: Schema + Send + Sync] SlotMapExpression<K, T>, SlotMap<K, T>, (PhantomData);
-);
 
 macro_rules! make_tuple_path_expr {
     ($($last_index:tt $name:ident $($field:ident)*;)*) => {
