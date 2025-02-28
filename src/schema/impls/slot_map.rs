@@ -57,11 +57,38 @@ impl<K: Key, T> SlotMap<K, T> {
         Self(Vec::new(), PhantomData)
     }
 
+    pub fn insert(&mut self, value: T) -> K {
+        // TODO: optimize by remembering the first available slots
+
+        if let Some((index, generation, slot)) = self
+            .0
+            .iter_mut()
+            .enumerate()
+            .filter_map(|(i, (generation, slot))| slot.is_none().then_some((i, generation, slot)))
+            .next()
+        {
+            *generation = generation
+                .checked_add(1)
+                .unwrap_or(NonZeroU32::new(1).unwrap());
+
+            *slot = Some(value);
+
+            K::new(index as u32, *generation)
+        } else {
+            let index = self.0.len() as u32;
+            let generation = NonZeroU32::new(1).unwrap();
+
+            self.0.push((generation, Some(value)));
+
+            K::new(index, generation)
+        }
+    }
+
     pub fn get(&self, key: K) -> Option<&T> {
         self.0
             .get(usize::try_from(key.index()).ok()?)
-            .and_then(|(generation, user)| {
-                (*generation == key.generation()).then_some(user.as_ref())
+            .and_then(|(generation, value)| {
+                (*generation == key.generation()).then_some(value.as_ref())
             })
             .flatten()
     }
@@ -69,8 +96,8 @@ impl<K: Key, T> SlotMap<K, T> {
     pub fn get_mut(&mut self, key: K) -> Option<&mut T> {
         self.0
             .get_mut(usize::try_from(key.index()).ok()?)
-            .and_then(|(generation, user)| {
-                (*generation == key.generation()).then_some(user.as_mut())
+            .and_then(|(generation, value)| {
+                (*generation == key.generation()).then_some(value.as_mut())
             })
             .flatten()
     }
