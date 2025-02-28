@@ -17,7 +17,10 @@ pub use self::{
     path::{
         BoolExpression, DurationExpression, Float32Expression, Float64Expression, FromPath,
         HashMapExpression, HashSetExpression, Int128Expression, Int16Expression, Int32Expression,
-        Int64Expression, Int8Expression, OptionExpression, OptionMappedExpression,
+        Int64Expression, Int8Expression, NonZeroInt128Expression, NonZeroInt16Expression,
+        NonZeroInt32Expression, NonZeroInt64Expression, NonZeroInt8Expression,
+        NonZeroUint128Expression, NonZeroUint16Expression, NonZeroUint32Expression,
+        NonZeroUint64Expression, NonZeroUint8Expression, OptionExpression, OptionMappedExpression,
         SlotMapExpression, StringExpression, TupleExpression1, TupleExpression10,
         TupleExpression11, TupleExpression12, TupleExpression13, TupleExpression14,
         TupleExpression15, TupleExpression16, TupleExpression2, TupleExpression3, TupleExpression4,
