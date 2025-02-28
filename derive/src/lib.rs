@@ -34,9 +34,9 @@ pub fn derive_schema(input: TokenStream) -> TokenStream {
         Data::Struct(data) => match data.fields {
             Fields::Named(fields) => derive_struct_named(vis, name, fields),
             Fields::Unnamed(fields) => derive_struct_unnamed(vis, name, fields),
-            Fields::Unit => derive_struct_unit(name),
+            Fields::Unit => derive_struct_unit(vis, name),
         },
-        Data::Enum(data) => derive_enum(name, data),
+        Data::Enum(data) => derive_enum(vis, name, data),
         Data::Union(_) => panic!("Cannot derive Schema for union"),
     };
 
@@ -288,10 +288,10 @@ fn derive_struct_unnamed(
     }
 }
 
-fn derive_struct_unit(name: Ident) -> proc_macro2::TokenStream {
+fn derive_struct_unit(vis: Visibility, name: Ident) -> proc_macro2::TokenStream {
     quote! {
         const _: () = {
-            struct Expression(Vec<u32>);
+            #vis struct Expression(Vec<u32>);
 
             impl ::database::Expression for #name {
                 type Target = #name;
@@ -368,7 +368,7 @@ fn derive_struct_unit(name: Ident) -> proc_macro2::TokenStream {
     }
 }
 
-fn derive_enum(name: Ident, data: DataEnum) -> proc_macro2::TokenStream {
+fn derive_enum(vis: Visibility, name: Ident, data: DataEnum) -> proc_macro2::TokenStream {
     let variant_count = data.variants.len() as u32;
 
     let write_schemas = data.variants.iter().map(|variant| match &variant.fields {
@@ -478,7 +478,7 @@ fn derive_enum(name: Ident, data: DataEnum) -> proc_macro2::TokenStream {
                 }
             }
 
-            struct Expression(Vec<u32>);
+            #vis struct Expression(Vec<u32>);
 
             impl Clone for Expression {
                 fn clone(&self) -> Self {
