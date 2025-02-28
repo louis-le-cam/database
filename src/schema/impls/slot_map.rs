@@ -1,4 +1,10 @@
-use std::{future::Future, io, marker::PhantomData, num::NonZeroU32};
+use std::{
+    future::Future,
+    io,
+    iter::{Enumerate, FilterMap},
+    marker::PhantomData,
+    num::NonZeroU32,
+};
 
 use tokio::io::AsyncWriteExt;
 
@@ -60,6 +66,24 @@ impl<K: Key, T> FromIterator<T> for SlotMap<K, T> {
                 .collect(),
             PhantomData,
         )
+    }
+}
+
+impl<K: Key, T> IntoIterator for SlotMap<K, T> {
+    type Item = (K, T);
+
+    type IntoIter = FilterMap<
+        Enumerate<std::vec::IntoIter<(NonZeroU32, Option<T>)>>,
+        fn((usize, (NonZeroU32, Option<T>))) -> Option<(K, T)>,
+    >;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0
+            .into_iter()
+            .enumerate()
+            .filter_map(|(index, (generation, value))| {
+                value.map(|value| (K::new(index as u32, generation), value))
+            })
     }
 }
 
