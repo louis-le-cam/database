@@ -1,13 +1,12 @@
 mod client;
-mod database;
 mod expression;
 mod schema;
 mod scope;
+mod server;
 mod value;
 
 pub use crate::{
     client::Client,
-    database::Database,
     expression::{
         expression_discriminant, And, AndExpression, BoolOperators, Chain, ChainExpression,
         ConditionExpression, EqualExpression, Expression, ExpressionNode, Filter, FilterExpression,
@@ -20,6 +19,7 @@ pub use crate::{
         Uint16Equal, Uint32Equal, Uint64Equal, Uint8Equal, VecGet,
     },
     schema::{schema_discriminant, DefaultKey, Key, OptionMapped, Schema, SchemaNode, SlotMap},
+    server::Server,
     value::Value,
 };
 

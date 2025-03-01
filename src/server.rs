@@ -11,13 +11,13 @@ use tokio::{
 
 use crate::{io_error, ExpressionNode, SchemaNode, Value};
 
-pub struct Database {
+pub struct Server {
     schema: Arc<Mutex<SchemaNode>>,
     value: Arc<Mutex<Value>>,
 }
 
-impl Database {
-    pub fn new(schema: SchemaNode, value: Value) -> Database {
+impl Server {
+    pub fn new(schema: SchemaNode, value: Value) -> Self {
         Self {
             schema: Arc::new(Mutex::new(schema)),
             value: Arc::new(Mutex::new(value)),

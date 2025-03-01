@@ -5,8 +5,8 @@ use std::{
 };
 
 use database::{
-    make_keys, BoolOperators, Client, Database, MapVec, OptionOperators, Schema, SchemaNode,
-    SlotMap, StringEqual, Value, VecGet as _,
+    make_keys, BoolOperators, Client, MapVec, OptionOperators, Schema, SchemaNode, Server, SlotMap,
+    StringEqual, Value, VecGet as _,
 };
 use tokio::join;
 
@@ -16,7 +16,7 @@ make_keys! {
 }
 
 #[derive(Schema, Debug)]
-struct Db {
+struct Database {
     test: Vec<String>,
     non_zero: NonZeroU32,
     users: SlotMap<UserKey, User>,
@@ -55,7 +55,7 @@ async fn main() {
     let client_future = async {
         let mut client = Client::<(), _>::new(client_stream)
             .await?
-            .set(Db {
+            .set(Database {
                 test: vec![
                     "string 1".to_string(),
                     "string 2".to_string(),
@@ -114,7 +114,7 @@ async fn main() {
                 .query(|db| (
                     1,
                     db.clone(),
-                    Db {
+                    Database {
                         test: Vec::new(),
                         non_zero: NonZeroU32::new(8).unwrap(),
                         users: SlotMap::new()
@@ -158,9 +158,9 @@ async fn main() {
         Ok(()) as Result<(), std::io::Error>
     };
 
-    let database = Database::new(SchemaNode::Unit, Value::Unit);
-    let (database_result, client_result) = join!(database.listen(server_stream), client_future);
+    let server = Server::new(SchemaNode::Unit, Value::Unit);
+    let (server_result, client_result) = join!(server.listen(server_stream), client_future);
 
-    database_result.unwrap();
+    server_result.unwrap();
     client_result.unwrap();
 }
