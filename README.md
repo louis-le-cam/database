@@ -8,24 +8,24 @@ This database implements [algebraic data types](https://en.wikipedia.org/wiki/Al
 to make your schema closer to your actual values, a typesystem that correctly represent data can avoid lots of mistakes
 
 ```rust
-#[derive(Shape)]
+#[derive(Schema)]
 enum Shape {
-  Rectangle {
-    width: f32,
-    height: f32,
-  },
-  Triangle {
-    a: (f32, f32),
-    b: (f32, f32),
-    c: (f32, f32),
-  },
-  Circle(f32),
+    Rectangle {
+        width: f32,
+        height: f32,
+    },
+    Triangle {
+        a: (f32, f32),
+        b: (f32, f32),
+        c: (f32, f32),
+    },
+    Circle(f32),
 }
 
 #[derive(Schema)]
 struct User {
-  name: String,
-  favorite_shape: Option<Shape>,
+    name: String,
+    favorite_shape: Option<Shape>,
 }
 ```
 
@@ -36,18 +36,18 @@ Queries are written just like any code in your favorite language
 
 ```rust
 client.query(|users| {
-  users.filter(|user| user.name.equal("some user"))
+    users.filter(|user| user.name.equal("some user"))
 });
 
 client.query(|users| {
-  // `push` is not yet implement
-  users.push(User {
-    name: "some user",
-    favorite_shape: Some(Shape::Rectangle {
-      width: 32.0,
-      height: 16.8,
-    }),
-  })
+    // `push` is not yet implemented
+    users.push(User {
+        name: "some user",
+        favorite_shape: Some(Shape::Rectangle {
+            width: 32.0,
+            height: 16.8,
+        }),
+    })
 });
 ```
 
