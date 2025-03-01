@@ -19,7 +19,7 @@ pub use crate::{
         Uint16Equal, Uint32Equal, Uint64Equal, Uint8Equal, VecGet,
     },
     schema::{schema_discriminant, DefaultKey, Key, OptionMapped, Schema, SchemaNode, SlotMap},
-    server::Server,
+    server::{request_discriminant, Server},
     value::Value,
 };
 

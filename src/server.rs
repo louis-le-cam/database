@@ -11,6 +11,12 @@ use tokio::{
 
 use crate::{io_error, ExpressionNode, SchemaNode, Value};
 
+pub mod request_discriminant {
+    pub const GET_SCHEMA: u8 = 0;
+    pub const SET: u8 = 1;
+    pub const QUERY: u8 = 2;
+}
+
 pub struct Server {
     schema: Arc<Mutex<SchemaNode>>,
     value: Arc<Mutex<Value>>,
@@ -45,15 +51,17 @@ impl Server {
     ) -> io::Result<()> {
         loop {
             match stream.read_u8().await {
-                Ok(0) => self.schema.lock().unwrap().write(&mut stream).await?,
-                Ok(1) => {
+                Ok(request_discriminant::GET_SCHEMA) => {
+                    self.schema.lock().unwrap().write(&mut stream).await?
+                }
+                Ok(request_discriminant::SET) => {
                     let schema = SchemaNode::read(&mut stream).await?;
                     let value = Value::read(&schema, &mut stream).await?;
 
                     *self.schema.lock().unwrap() = schema;
                     *self.value.lock().unwrap() = value;
                 }
-                Ok(2) => {
+                Ok(request_discriminant::QUERY) => {
                     ExpressionNode::read(&mut stream)
                         .await?
                         .evaluate(vec![self.value.clone()])

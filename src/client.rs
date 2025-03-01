@@ -5,7 +5,7 @@ use tokio::{
     net::{TcpStream, ToSocketAddrs},
 };
 
-use crate::{Expression, FromPath, Schema, SchemaNode, Scope};
+use crate::{request_discriminant, Expression, FromPath, Schema, SchemaNode, Scope};
 
 pub struct Client<S: Schema + Send + Sync, St: AsyncReadExt + AsyncWriteExt + Unpin + Send> {
     stream: St,
@@ -28,7 +28,9 @@ impl<S: Schema + Send + Sync, St: AsyncReadExt + AsyncWriteExt + Unpin + Send> C
     }
 
     pub async fn get_schema(&mut self) -> io::Result<SchemaNode> {
-        self.stream.write_u8(0).await?;
+        self.stream
+            .write_u8(request_discriminant::GET_SCHEMA)
+            .await?;
 
         SchemaNode::read(&mut self.stream).await
     }
@@ -37,7 +39,7 @@ impl<S: Schema + Send + Sync, St: AsyncReadExt + AsyncWriteExt + Unpin + Send> C
         mut self,
         value: NewS,
     ) -> io::Result<Client<NewS, St>> {
-        self.stream.write_u8(1).await?;
+        self.stream.write_u8(request_discriminant::SET).await?;
 
         NewS::write_schema(&mut self.stream).await?;
         value.write_value(&mut self.stream).await?;
@@ -56,7 +58,7 @@ impl<S: Schema + Send + Sync, St: AsyncReadExt + AsyncWriteExt + Unpin + Send> C
         let expression = (query)(<S::Expression as FromPath>::from_path(vec![0]));
         Scope::delete();
 
-        self.stream.write_u8(2).await?;
+        self.stream.write_u8(request_discriminant::QUERY).await?;
 
         expression.write(&mut self.stream).await?;
 
