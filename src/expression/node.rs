@@ -52,13 +52,13 @@ impl ExpressionNode {
             ExpressionNode::Set(operands) => {
                 let (left_expression, right_expression) = *operands;
 
-                *left_expression.evaluate(scopes).lock().unwrap() = right_expression
-                    .evaluate(scopes.clone())
-                    .lock()
-                    .unwrap()
-                    .clone();
+                let lhs = left_expression.evaluate(scopes.clone());
 
-                Arc::new(Mutex::new(Value::Unit))
+                let old_value = lhs.lock().unwrap().clone();
+
+                *lhs.lock().unwrap() = right_expression.evaluate(scopes).lock().unwrap().clone();
+
+                Arc::new(Mutex::new(old_value))
             }
             ExpressionNode::Equal(operands) => {
                 let (left_expression, right_expression) = *operands;

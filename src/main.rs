@@ -142,6 +142,15 @@ async fn main() {
 
         dbg!(
             client
+                .query(|db| {
+                    db.users
+                        .remove(UserKey::new(1, NonZeroU32::new(1).unwrap()))
+                })
+                .await?
+        );
+
+        dbg!(
+            client
                 .query(|db| { db.users.get(UserKey::new(1, NonZeroU32::new(1).unwrap())) })
                 .await?
         );

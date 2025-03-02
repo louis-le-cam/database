@@ -7,7 +7,7 @@ use crate::{expression_discriminant, Expression};
 pub struct SetExpression<L: Expression, R: Expression>(L, R);
 
 impl<L: Expression, R: Expression> Expression for SetExpression<L, R> {
-    type Target = ();
+    type Target = L::Target;
 
     fn write(
         self,
