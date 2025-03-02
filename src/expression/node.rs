@@ -184,14 +184,15 @@ impl ExpressionNode {
                 };
 
                 let lhs = left_expression.evaluate(scopes);
-                let Value::List(list) = &*lhs.lock().unwrap() else {
-                    panic!();
-                };
-
-                Arc::new(Mutex::new(match list.get(index as usize) {
-                    Some(value) => Value::Sum(1, value.clone()),
-                    None => Value::Sum(0, Arc::new(Mutex::new(Value::Unit))),
-                }))
+                let lhs = lhs.lock().unwrap();
+                match &*lhs {
+                    Value::Product(product) => product[index as usize].clone(),
+                    Value::List(list) => Arc::new(Mutex::new(match list.get(index as usize) {
+                        Some(value) => Value::Sum(1, value.clone()),
+                        None => Value::Sum(0, Arc::new(Mutex::new(Value::Unit))),
+                    })),
+                    _ => panic!(),
+                }
             }
             ExpressionNode::Condition(operands) => {
                 let (condition, if_branch, else_branch) = *operands;

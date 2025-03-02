@@ -5,13 +5,12 @@ use std::{
 };
 
 use database::{
-    make_keys, BoolOperators, Client, MapVec, OptionOperators, Schema, SchemaNode, Server, SlotMap,
-    StringEqual, Value, VecGet as _,
+    make_keys, Client, Key, Schema, SchemaNode, Server, SlotMap, SlotMapOperators, Value,
 };
 use tokio::join;
 
 make_keys! {
-    #[derive(Debug)]
+    #[derive(Schema, Clone, Debug)]
     struct UserKey;
 }
 
@@ -108,38 +107,44 @@ async fn main() {
             })
             .await?;
 
-        dbg!(client.query(|db| db).await?);
-        dbg!(
-            client
-                .query(|db| (
-                    1,
-                    db.clone(),
-                    Database {
-                        test: Vec::new(),
-                        non_zero: NonZeroU32::new(8).unwrap(),
-                        users: SlotMap::new()
-                    }
-                ))
-                .await?
-        );
+        // dbg!(client.query(|db| db).await?);
+        // dbg!(
+        //     client
+        //         .query(|db| (
+        //             1,
+        //             db.clone(),
+        //             Database {
+        //                 test: Vec::new(),
+        //                 non_zero: NonZeroU32::new(8).unwrap(),
+        //                 users: SlotMap::new()
+        //             }
+        //         ))
+        //         .await?
+        // );
+
+        // dbg!(
+        //     client
+        //         .query(|db| db.test.map(|value| (1, value, 2)))
+        //         .await?
+        // );
+
+        // for i in 0u32..4 {
+        //     dbg!(client
+        //         .query(|db| db
+        //             .test
+        //             .get(i)
+        //             .unwrap_or("default")
+        //             .equal("string 2")
+        //             .if_else(32, 89))
+        //         .await
+        //         .unwrap());
+        // }
 
         dbg!(
             client
-                .query(|db| db.test.map(|value| (1, value, 2)))
+                .query(|db| { db.users.get(UserKey::new(1, NonZeroU32::new(1).unwrap())) })
                 .await?
         );
-
-        for i in 0u32..4 {
-            dbg!(client
-                .query(|db| db
-                    .test
-                    .get(i)
-                    .unwrap_or("default")
-                    .equal("string 2")
-                    .if_else(32, 89))
-                .await
-                .unwrap());
-        }
 
         // dbg!(
         //     client

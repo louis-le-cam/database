@@ -48,3 +48,27 @@ impl<S: Expression<Target = Option<T>>, T: Schema + Send + Sync> OptionOperators
         )
     }
 }
+
+pub trait FlattenOperator<T: Schema + Send + Sync>:
+    Expression<Target = Option<Option<T>>> + Sized
+{
+    fn flatten(self) -> impl Expression<Target = Option<T>>;
+}
+
+impl<
+        T: Schema + Expression<Target = T> + Send + Sync,
+        E: Expression<Target = Option<Option<T>>>,
+    > FlattenOperator<T> for E
+{
+    fn flatten(self) -> impl Expression<Target = Option<T>> {
+        FuseExpression::<_, Option<T>>(
+            MapVariantExpression::<Self, Option<T>, OptionMapped<Option<T>, Option<T>>>(
+                self,
+                0,
+                None,
+                PhantomData,
+            ),
+            PhantomData,
+        )
+    }
+}

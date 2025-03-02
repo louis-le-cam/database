@@ -1,4 +1,11 @@
-use std::{future::Future, io};
+use std::{
+    future::Future,
+    io,
+    num::{
+        NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroU128, NonZeroU16,
+        NonZeroU32, NonZeroU64, NonZeroU8,
+    },
+};
 
 use tokio::io::AsyncWriteExt;
 
@@ -50,4 +57,14 @@ impl_equal!(
     Int32Equal i32;
     Int64Equal i64;
     Int128Equal i128;
+    NonZeroUint8Equal NonZeroU8;
+    NonZeroUint16Equal NonZeroU16;
+    NonZeroUint32Equal NonZeroU32;
+    NonZeroUint64Equal NonZeroU64;
+    NonZeroUint128Equal NonZeroU128;
+    NonZeroInt8Equal NonZeroI8;
+    NonZeroInt16Equal NonZeroI16;
+    NonZeroInt32Equal NonZeroI32;
+    NonZeroInt64Equal NonZeroI64;
+    NonZeroInt128Equal NonZeroI128;
 );

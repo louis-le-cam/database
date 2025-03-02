@@ -68,7 +68,10 @@ where
         async {
             write.write_u8(expression_discriminant::SUM).await?;
             match self {
-                None => write.write_u32(0).await?,
+                None => {
+                    write.write_u32(0).await?;
+                    ().write(write).await?;
+                }
                 Some(expression) => {
                     write.write_u32(1).await?;
                     expression.write(write).await?;
