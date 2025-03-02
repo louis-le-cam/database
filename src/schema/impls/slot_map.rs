@@ -101,6 +101,12 @@ impl<K: Key, T> SlotMap<K, T> {
             })
             .flatten()
     }
+
+    pub fn remove(&mut self, key: K) -> Option<T> {
+        self.0
+            .get_mut(key.index() as usize)
+            .and_then(|(_, slot)| slot.take())
+    }
 }
 
 impl<K: Key, T> FromIterator<T> for SlotMap<K, T> {
