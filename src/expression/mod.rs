@@ -13,7 +13,7 @@ pub use self::{
         Int128Equal, Int16Equal, Int32Equal, Int64Equal, Int8Equal, MapVariantExpression, MapVec,
         NonZeroInt128Equal, NonZeroInt16Equal, NonZeroInt32Equal, NonZeroInt64Equal,
         NonZeroInt8Equal, NonZeroUint128Equal, NonZeroUint16Equal, NonZeroUint32Equal,
-        NonZeroUint64Equal, NonZeroUint8Equal, OptionOperators, Set, SetExpression,
+        NonZeroUint64Equal, NonZeroUint8Equal, OptionOperators, Set, SetExpression, SetIfSome,
         SlotMapOperators, StringEqual, Uint128Equal, Uint16Equal, Uint32Equal, Uint64Equal,
         Uint8Equal, VecGet,
     },

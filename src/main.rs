@@ -5,7 +5,7 @@ use std::{
 };
 
 use database::{
-    make_keys, Client, Key, Schema, SchemaNode, Server, SlotMap, SlotMapOperators, Value,
+    make_keys, Client, Key, Schema, SchemaNode, Server, SetIfSome, SlotMap, SlotMapOperators, Value,
 };
 use tokio::join;
 
@@ -139,6 +139,22 @@ async fn main() {
         //         .await
         //         .unwrap());
         // }
+
+        dbg!(
+            client
+                .query(|db| db.test.set_if_some(Option::<Vec<String>>::None))
+                .await?
+        );
+
+        dbg!(client.query(|db| db.test).await?);
+
+        dbg!(
+            client
+                .query(|db| db.test.set_if_some(Some(vec!["1", "2", "8"])))
+                .await?
+        );
+
+        dbg!(client.query(|db| db.test).await?);
 
         dbg!(
             client

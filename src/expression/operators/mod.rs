@@ -28,6 +28,6 @@ pub use self::{
     map::MapVec,
     map_variant::MapVariantExpression,
     option::{FlattenOperator, OptionOperators},
-    set::{Set, SetExpression},
+    set::{Set, SetExpression, SetIfSome},
     slot_map::SlotMapOperators,
 };
