@@ -9,6 +9,8 @@ mod option;
 mod set;
 
 mod condition;
+mod insert;
+mod length;
 mod map;
 mod slot_map;
 pub use self::{
@@ -22,9 +24,11 @@ pub use self::{
         NonZeroUint64Equal, NonZeroUint8Equal, StringEqual, Uint128Equal, Uint16Equal, Uint32Equal,
         Uint64Equal, Uint8Equal,
     },
-    filter::{Filter, FilterExpression},
+    filter::{FilterExpression, HashSetFilter, VecFilter},
     fuse::FuseExpression,
     get::{GetExpression, VecGet},
+    insert::{InsertExpression, VecInsert},
+    length::{Length, LengthExpression},
     map::MapVec,
     map_variant::MapVariantExpression,
     option::{FlattenOperator, OptionOperators},

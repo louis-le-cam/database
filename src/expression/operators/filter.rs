@@ -1,10 +1,10 @@
-use std::{future::Future, io};
+use std::{collections::HashSet, future::Future, io};
 
 use tokio::io::AsyncWriteExt;
 
 use crate::{expression_discriminant, Expression, FromPath, Schema, Scope};
 
-pub struct FilterExpression<L: Expression, R: Expression>(L, R);
+pub struct FilterExpression<L: Expression, R: Expression>(pub(crate) L, pub(crate) R);
 
 impl<L: Expression, R: Expression> Expression for FilterExpression<L, R>
 where
@@ -25,12 +25,31 @@ where
     }
 }
 
-pub trait Filter<Rhs: Expression, T: Schema>: Expression + Sized {
+pub trait VecFilter<Rhs: Expression, T: Schema>: Expression + Sized {
     fn filter(self, filter: impl FnOnce(T::Expression) -> Rhs) -> FilterExpression<Self, Rhs>;
 }
 
 impl<Lhs: Expression<Target = Vec<T>>, Rhs: Expression<Target = bool>, T: Schema + Send + Sync>
-    Filter<Rhs, T> for Lhs
+    VecFilter<Rhs, T> for Lhs
+{
+    fn filter(self, filter: impl FnOnce(T::Expression) -> Rhs) -> FilterExpression<Self, Rhs> {
+        Scope::increment_depth();
+        let expression = (filter)(T::Expression::from_path(vec![Scope::get().unwrap()]));
+        Scope::decrement_depth();
+
+        FilterExpression(self, expression)
+    }
+}
+
+pub trait HashSetFilter<Rhs: Expression, T: Schema>: Expression + Sized {
+    fn filter(self, filter: impl FnOnce(T::Expression) -> Rhs) -> FilterExpression<Self, Rhs>;
+}
+
+impl<Lhs, Rhs, T> HashSetFilter<Rhs, T> for Lhs
+where
+    Lhs: Expression<Target = HashSet<T>>,
+    Rhs: Expression<Target = bool>,
+    T: Schema + Send + Sync,
 {
     fn filter(self, filter: impl FnOnce(T::Expression) -> Rhs) -> FilterExpression<Self, Rhs> {
         Scope::increment_depth();

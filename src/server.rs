@@ -62,6 +62,7 @@ impl Server {
                     *self.value.lock().unwrap() = value;
                 }
                 Ok(request_discriminant::QUERY) => {
+                    dbg!("=========================================");
                     ExpressionNode::read(&mut stream)
                         .await?
                         .evaluate(vec![self.value.clone()])

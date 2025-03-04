@@ -15,6 +15,8 @@ pub enum ExpressionNode {
     Equal(Box<(ExpressionNode, ExpressionNode)>),
     Filter(Box<(ExpressionNode, ExpressionNode)>),
     Map(Box<(ExpressionNode, ExpressionNode)>),
+    Length(Box<ExpressionNode>),
+    Insert(Box<(ExpressionNode, ExpressionNode, ExpressionNode)>),
     And(Box<(ExpressionNode, ExpressionNode)>),
     MapVariant(Box<(ExpressionNode, u32, ExpressionNode)>),
     Fuse(Box<ExpressionNode>),
@@ -33,15 +35,17 @@ pub mod expression_discriminant {
     pub const EQUAL: u8 = 3;
     pub const FILTER: u8 = 4;
     pub const MAP: u8 = 5;
-    pub const AND: u8 = 6;
-    pub const MAP_VARIANT: u8 = 7;
-    pub const FUSE: u8 = 8;
-    pub const CHAIN: u8 = 9;
-    pub const GET: u8 = 10;
-    pub const CONDITION: u8 = 11;
-    pub const PRODUCT: u8 = 12;
-    pub const SUM: u8 = 13;
-    pub const LIST: u8 = 14;
+    pub const LENGTH: u8 = 6;
+    pub const INSERT: u8 = 7;
+    pub const AND: u8 = 8;
+    pub const MAP_VARIANT: u8 = 9;
+    pub const FUSE: u8 = 10;
+    pub const CHAIN: u8 = 11;
+    pub const GET: u8 = 12;
+    pub const CONDITION: u8 = 13;
+    pub const PRODUCT: u8 = 14;
+    pub const SUM: u8 = 15;
+    pub const LIST: u8 = 16;
 }
 
 impl ExpressionNode {
@@ -122,6 +126,39 @@ impl ExpressionNode {
                         })
                         .collect(),
                 )))
+            }
+            ExpressionNode::Length(operand) => {
+                let value = operand.evaluate(scopes);
+                let Value::List(list) = &*value.lock().unwrap() else {
+                    panic!()
+                };
+
+                Arc::new(Mutex::new(Value::Uint32(list.len().try_into().unwrap())))
+            }
+            ExpressionNode::Insert(operands) => {
+                let (lhs, index, rhs) = *operands;
+
+                let index = {
+                    let rhs = index.evaluate(scopes.clone());
+                    let Value::Uint32(index) = &*rhs.lock().unwrap() else {
+                        panic!();
+                    };
+
+                    *index
+                };
+
+                let left_value = lhs.evaluate(scopes.clone());
+                let right_value = rhs.evaluate(scopes.clone());
+
+                {
+                    let Value::List(list) = &mut *left_value.lock().unwrap() else {
+                        panic!();
+                    };
+
+                    list.insert(index.try_into().unwrap(), right_value);
+                }
+
+                left_value
             }
             ExpressionNode::And(operands) => {
                 let (left_expression, right_expression) = *operands;
@@ -234,6 +271,8 @@ impl ExpressionNode {
             ExpressionNode::Equal(_) => expression_discriminant::EQUAL,
             ExpressionNode::Filter(_) => expression_discriminant::FILTER,
             ExpressionNode::Map(_) => expression_discriminant::MAP,
+            ExpressionNode::Length(_) => expression_discriminant::LENGTH,
+            ExpressionNode::Insert(_) => expression_discriminant::INSERT,
             ExpressionNode::And(_) => expression_discriminant::AND,
             ExpressionNode::MapVariant(_) => expression_discriminant::MAP_VARIANT,
             ExpressionNode::Fuse(_) => expression_discriminant::FUSE,
@@ -290,6 +329,14 @@ impl ExpressionNode {
                 Box::pin(Self::read(read)).await?,
             ))),
             expression_discriminant::MAP => Self::Map(Box::new((
+                Box::pin(Self::read(read)).await?,
+                Box::pin(Self::read(read)).await?,
+            ))),
+            expression_discriminant::LENGTH => {
+                Self::Length(Box::new(Box::pin(Self::read(read)).await?))
+            }
+            expression_discriminant::INSERT => Self::Insert(Box::new((
+                Box::pin(Self::read(read)).await?,
                 Box::pin(Self::read(read)).await?,
                 Box::pin(Self::read(read)).await?,
             ))),
@@ -416,6 +463,14 @@ impl ExpressionNode {
             ExpressionNode::Map(operands) => {
                 Box::pin(operands.as_ref().0.write(write)).await?;
                 Box::pin(operands.as_ref().1.write(write)).await?;
+            }
+            ExpressionNode::Length(operand) => {
+                Box::pin(operand.as_ref().write(write)).await?;
+            }
+            ExpressionNode::Insert(operands) => {
+                Box::pin(operands.as_ref().0.write(write)).await?;
+                Box::pin(operands.as_ref().1.write(write)).await?;
+                Box::pin(operands.as_ref().2.write(write)).await?;
             }
             ExpressionNode::And(operands) => {
                 Box::pin(operands.as_ref().0.write(write)).await?;

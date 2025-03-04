@@ -5,7 +5,8 @@ use std::{
 };
 
 use database::{
-    make_keys, Client, Key, Schema, SchemaNode, Server, SetIfSome, SlotMap, SlotMapOperators, Value,
+    make_keys, Client, Key, Length, Schema, SchemaNode, Server, SetIfSome, SlotMap,
+    SlotMapOperators, Value, VecInsert,
 };
 use tokio::join;
 
@@ -155,6 +156,12 @@ async fn main() {
         );
 
         dbg!(client.query(|db| db.test).await?);
+
+        dbg!(
+            client
+                .query(|db| db.test.insert(1u32, "9").length())
+                .await?
+        );
 
         dbg!(
             client
