@@ -1,33 +1,9 @@
-use std::{
-    future::Future,
-    io,
-    num::{
-        NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroU128, NonZeroU16,
-        NonZeroU32, NonZeroU64, NonZeroU8,
-    },
+use std::num::{
+    NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroU128, NonZeroU16,
+    NonZeroU32, NonZeroU64, NonZeroU8,
 };
 
-use tokio::io::AsyncWriteExt;
-
-use crate::{expression_discriminant, Expression};
-
-pub struct EqualExpression<L: Expression, R: Expression>(L, R);
-
-impl<L: Expression, R: Expression> Expression for EqualExpression<L, R> {
-    type Target = bool;
-
-    fn write(
-        self,
-        write: &mut (impl AsyncWriteExt + Unpin + Send),
-    ) -> impl Future<Output = io::Result<()>> {
-        async {
-            write.write_u8(expression_discriminant::EQUAL).await?;
-            Box::pin(self.0.write(write)).await?;
-            Box::pin(self.1.write(write)).await?;
-            Ok(())
-        }
-    }
-}
+use crate::{EqualExpression, Expression};
 
 macro_rules! impl_equal {
     ($($trait:ident $target:ty;)*) => {
